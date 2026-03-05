@@ -1,0 +1,181 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  COUNSELLOR
+  ADMIN
+}
+
+enum ResourceType {
+  VIDEO
+  AUDIO
+  GUIDE
+}
+
+enum ResourceCategory {
+  ANXIETY
+  FOCUS
+  SLEEP
+  MINDFULNESS
+  GENERAL
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ============================================================
+// NextAuth.js v5 required models
+// ============================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// Application models
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(STUDENT)
+  createdAt     DateTime  @default(now())
+
+  accounts           Account[]
+  sessions           Session[]
+  forumTopics        ForumTopic[]
+  moodLogs           MoodLog[]
+  studentBookings    Booking[]      @relation("StudentBookings")
+  counsellorBookings Booking[]      @relation("CounsellorBookings")
+  sentMessages       Message[]      @relation("SentMessages")
+  receivedMessages   Message[]      @relation("ReceivedMessages")
+  conversationsAsA   Conversation[] @relation("ConversationsAsA")
+  conversationsAsB   Conversation[] @relation("ConversationsAsB")
+}
+
+model Resource {
+  id           String           @id @default(cuid())
+  title        String
+  description  String?          @db.Text
+  type         ResourceType
+  category     ResourceCategory @default(GENERAL)
+  url          String           // YouTube embed ID or external link
+  thumbnailUrl String?
+  duration     String?          // e.g. "5 min", "12 min read"
+  isFeatured   Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+}
+
+model ForumTopic {
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  likes     Int      @default(0)
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  studentId       String
+  counsellorId    String
+  appointmentTime DateTime
+  status          BookingStatus @default(PENDING)
+
+  student    User @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
+  counsellor User @relation("CounsellorBookings", fields: [counsellorId], references: [id], onDelete: Cascade)
+}
+
+model MoodLog {
+  id        String   @id @default(cuid())
+  userId    String
+  moodScore Int // 1-10 scale
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// Peer Forum Messaging models
+// ============================================================
+
+model Conversation {
+  id             String   @id @default(cuid())
+  participantAId String
+  participantBId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  participantA User      @relation("ConversationsAsA", fields: [participantAId], references: [id], onDelete: Cascade)
+  participantB User      @relation("ConversationsAsB", fields: [participantBId], references: [id], onDelete: Cascade)
+  messages     Message[]
+
+  @@unique([participantAId, participantBId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  receiverId     String
+  content        String   @db.Text
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver     User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}

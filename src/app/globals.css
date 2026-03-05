@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #fbf9f6; /* Warm off-white sand */
+    --foreground: #2d3748; /* Deep slate */
+    --primary: #8a9a86; /* Sage green */
+    --primary-foreground: #ffffff;
+    --secondary: #d4a373; /* Muted terracotta */
+    --secondary-foreground: #ffffff;
+    --accent: #e9ecef; /* Soft gray for cards */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #1a202c; /* Deep cool gray */
+      --foreground: #fbf9f6;
+      --primary: #9cb197;
+      --secondary: #e2b689;
+      --accent: #2d3748;
+    }
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+}
