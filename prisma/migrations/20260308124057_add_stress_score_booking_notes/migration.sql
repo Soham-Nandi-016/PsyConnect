@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE `booking` ADD COLUMN `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    ADD COLUMN `notes` TEXT NULL;
+
+-- AlterTable
+ALTER TABLE `moodlog` ADD COLUMN `stressScore` INTEGER NULL;

@@ -133,17 +133,20 @@ model Booking {
   counsellorId    String
   appointmentTime DateTime
   status          BookingStatus @default(PENDING)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
 
   student    User @relation("StudentBookings", fields: [studentId], references: [id], onDelete: Cascade)
   counsellor User @relation("CounsellorBookings", fields: [counsellorId], references: [id], onDelete: Cascade)
 }
 
 model MoodLog {
-  id        String   @id @default(cuid())
-  userId    String
-  moodScore Int // 1-10 scale
-  notes     String?  @db.Text
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  moodScore   Int      // 1-10 scale (1=very low, 10=excellent)
+  stressScore Int?     // 0-100 AI-calculated stress score
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

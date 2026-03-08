@@ -1,10 +1,122 @@
+"use client";
+
 import {
   MessageSquare,
   BookOpen,
   ArrowRight,
   PlayCircle,
-} from 'lucide-react';
-import Link from 'next/link';
+  LayoutDashboard,
+  LogIn,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+
+// ── Auth Guard Modal ─────────────────────────────────────────
+
+function AuthGuardModal({ onClose }: { onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 16, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.9, y: 8, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 25 }}
+        className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm relative text-center"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+          <LayoutDashboard className="w-8 h-8 text-primary" />
+        </div>
+
+        <h2 className="text-xl font-extrabold text-gray-900 mb-2">Your Dashboard Awaits</h2>
+        <p className="text-gray-500 text-sm leading-relaxed mb-6">
+          To access your personalized wellness tools, please sign in first.
+        </p>
+
+        <div className="flex flex-col gap-3">
+          <Link href="/auth/signin?callbackUrl=/dashboard" onClick={onClose}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              className="w-full flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In to Continue
+            </motion.button>
+          </Link>
+          <Link href="/auth/signup?callbackUrl=/dashboard" onClick={onClose}>
+            <button className="w-full text-sm font-semibold text-gray-500 hover:text-primary transition-colors py-2">
+              New here? Create a free account →
+            </button>
+          </Link>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── Auth-Guarded Dashboard Button ────────────────────────────
+
+function DashboardButton() {
+  const { data: session, status } = useSession();
+  const [showModal, setShowModal] = useState(false);
+
+  const role = session ? (session.user as { role?: string })?.role : null;
+  const dashboardHref =
+    role === "COUNSELLOR" || role === "ADMIN"
+      ? "/dashboard/senior"
+      : "/dashboard/student";
+
+  const handleClick = () => {
+    if (status === "loading") return;
+    if (!session) {
+      setShowModal(true);
+    }
+    // If logged in, the Link itself navigates
+  };
+
+  return (
+    <>
+      <AnimatePresence>
+        {showModal && <AuthGuardModal onClose={() => setShowModal(false)} />}
+      </AnimatePresence>
+
+      {session ? (
+        <Link href={dashboardHref}>
+          <button className="flex items-center justify-center gap-2 bg-white text-foreground px-8 py-3.5 rounded-full font-bold text-lg border border-accent hover:bg-accent/50 transition-all shadow-sm">
+            <LayoutDashboard className="w-5 h-5" />
+            My Dashboard
+          </button>
+        </Link>
+      ) : (
+        <button
+          onClick={handleClick}
+          className="flex items-center justify-center gap-2 bg-white text-foreground px-8 py-3.5 rounded-full font-bold text-lg border border-accent hover:bg-accent/50 transition-all shadow-sm"
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          My Dashboard
+        </button>
+      )}
+    </>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────
 
 export default function Home() {
   return (
@@ -25,7 +137,7 @@ export default function Home() {
               Safe &amp; Anonymous
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-extrabold text-foreground leading-tight tracking-tight">
-              You are not alone.{' '}
+              You are not alone.{" "}
               <span className="text-secondary relative whitespace-nowrap">
                 Join the conversation.
                 <svg className="absolute w-full h-3 -bottom-2 left-0 text-secondary/30" viewBox="0 0 200 9" preserveAspectRatio="none">
@@ -43,11 +155,8 @@ export default function Home() {
                   Enter Peer Forum
                 </button>
               </Link>
-              <Link href="/auth/signin">
-                <button className="flex items-center justify-center gap-2 bg-white text-foreground px-8 py-3.5 rounded-full font-bold text-lg border border-accent hover:bg-accent/50 transition-all shadow-sm">
-                  Get Professional Help
-                </button>
-              </Link>
+              {/* Auth-guarded Dashboard button */}
+              <DashboardButton />
             </div>
           </div>
 
@@ -63,8 +172,7 @@ export default function Home() {
                 <h3 className="font-bold text-foreground mb-2 leading-snug">Feeling overwhelmed with finals approaching...</h3>
                 <p className="text-sm text-foreground/70 line-clamp-2">Does anyone else feel like they&apos;re just completely frozen? I have so much to do but I can&apos;t start.</p>
                 <div className="mt-4 flex items-center justify-between text-xs text-primary font-semibold">
-                  <span>12 replies</span>
-                  <span>45 ♥</span>
+                  <span>12 replies</span><span>45 ♥</span>
                 </div>
               </div>
 
@@ -77,8 +185,7 @@ export default function Home() {
                 <h3 className="font-bold text-foreground mb-2 leading-snug">A quick tip for anxiety attacks</h3>
                 <p className="text-sm text-foreground/70 line-clamp-2">The 5-4-3-2-1 grounding method really saved me today. Look around and name...</p>
                 <div className="mt-4 flex items-center justify-between text-xs text-primary font-semibold">
-                  <span>34 replies</span>
-                  <span>128 ♥</span>
+                  <span>34 replies</span><span>128 ♥</span>
                 </div>
               </div>
 
@@ -90,8 +197,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-bold text-foreground mb-2 leading-snug">How to tell my roommate I need space?</h3>
                 <div className="mt-4 flex items-center justify-between text-xs text-primary font-semibold">
-                  <span>8 replies</span>
-                  <span>22 ♥</span>
+                  <span>8 replies</span><span>22 ♥</span>
                 </div>
               </div>
 

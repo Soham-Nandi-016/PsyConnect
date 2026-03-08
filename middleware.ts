@@ -1,52 +1,55 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-// Routes that require the user to be authenticated
-const PROTECTED_ROUTES = ["/dashboard", "/forum", "/resources"];
+// Routes that require authentication
+const PROTECTED_ROUTES = [
+    "/dashboard",
+    "/dashboard/student",
+    "/dashboard/senior",
+    "/forum",
+    "/resources",
+];
 
-// Routes only accessible when NOT logged in (redirect logged-in users away)
+// Routes only for unauthenticated users
 const AUTH_ROUTES = ["/auth/signin", "/auth/signup"];
 
-// Role-restricted routes
-const STUDENT_ONLY_ROUTES = ["/dashboard/student"];
-const SENIOR_ONLY_ROUTES = ["/dashboard/senior"];
+// Role-restricted sub-routes
+const STUDENT_ONLY = ["/dashboard/student"];
+const SENIOR_ONLY = ["/dashboard/senior"];
 
 export default auth((req) => {
     const { nextUrl, auth: session } = req;
-    const isLoggedIn = !!session;
-    const role = isLoggedIn ? (session?.user as { role?: string })?.role : null;
+    const path = nextUrl.pathname;
+    const isLoggedIn = !!session?.user;
+    const role = isLoggedIn ? (session?.user as { role?: string })?.role ?? "STUDENT" : null;
 
-    const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
-        nextUrl.pathname.startsWith(route)
-    );
-    const isAuthRoute = AUTH_ROUTES.some((route) =>
-        nextUrl.pathname.startsWith(route)
-    );
+    const isProtected = PROTECTED_ROUTES.some((r) => path === r || path.startsWith(r + "/"));
+    const isAuthRoute = AUTH_ROUTES.some((r) => path.startsWith(r));
 
-    // Redirect authenticated users away from auth pages → their dashboard
+    // ── Unauthenticated → redirect to sign-in ──────────────
+    if (!isLoggedIn && isProtected) {
+        const dest = new URL("/auth/signin", nextUrl);
+        dest.searchParams.set("callbackUrl", path);
+        return NextResponse.redirect(dest);
+    }
+
+    // ── Authenticated on auth pages → go to dashboard ──────
     if (isLoggedIn && isAuthRoute) {
-        const dest = (role === "COUNSELLOR" || role === "ADMIN")
-            ? "/dashboard/senior"
-            : "/dashboard/student";
+        const dest =
+            role === "COUNSELLOR" || role === "ADMIN"
+                ? "/dashboard/senior"
+                : "/dashboard/student";
         return NextResponse.redirect(new URL(dest, nextUrl));
     }
 
-    // Redirect unauthenticated users away from protected routes
-    if (!isLoggedIn && isProtectedRoute) {
-        const redirectUrl = new URL("/auth/signin", nextUrl);
-        redirectUrl.searchParams.set("callbackUrl", nextUrl.pathname);
-        return NextResponse.redirect(redirectUrl);
-    }
-
-    // Cross-role guard: STUDENT trying to access /dashboard/senior
-    if (isLoggedIn && SENIOR_ONLY_ROUTES.some((r) => nextUrl.pathname.startsWith(r))) {
+    // ── Cross-role guards ────────────────────────────────────
+    if (isLoggedIn && SENIOR_ONLY.some((r) => path.startsWith(r))) {
         if (role !== "COUNSELLOR" && role !== "ADMIN") {
             return NextResponse.redirect(new URL("/dashboard/student", nextUrl));
         }
     }
 
-    // Cross-role guard: COUNSELLOR/ADMIN trying to access /dashboard/student
-    if (isLoggedIn && STUDENT_ONLY_ROUTES.some((r) => nextUrl.pathname.startsWith(r))) {
+    if (isLoggedIn && STUDENT_ONLY.some((r) => path.startsWith(r))) {
         if (role === "COUNSELLOR" || role === "ADMIN") {
             return NextResponse.redirect(new URL("/dashboard/senior", nextUrl));
         }
@@ -55,8 +58,6 @@ export default auth((req) => {
     return NextResponse.next();
 });
 
-// Tell Next.js which paths to run the middleware on.
-// Exclude static files, images, and the api/auth route itself.
 export const config = {
     matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|fonts).*)"],
 };
