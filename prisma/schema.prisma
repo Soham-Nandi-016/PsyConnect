@@ -101,6 +101,7 @@ model User {
   receivedMessages   Message[]      @relation("ReceivedMessages")
   conversationsAsA   Conversation[] @relation("ConversationsAsA")
   conversationsAsB   Conversation[] @relation("ConversationsAsB")
+  therapyBookings    TherapyBooking[] @relation("TherapyBookingsAsStudent")
 }
 
 model Resource {
@@ -181,4 +182,69 @@ model Message {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   receiver     User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// Therapist Discovery & Booking models
+// ============================================================
+
+enum Specialty {
+  STRESS
+  ANXIETY
+  DEPRESSION
+  SLEEP
+  RELATIONSHIPS
+  ACADEMIC
+  GENERAL
+}
+
+model Counsellor {
+  id             String    @id @default(cuid())
+  name           String
+  bio            String    @db.Text
+  specialty      Specialty @default(GENERAL)
+  qualifications String    @db.Text
+  philosophy     String    @db.Text
+  videoUrl       String?
+  avatarUrl      String?
+  rating         Float     @default(5.0)
+  yearsExp       Int       @default(1)
+  createdAt      DateTime  @default(now())
+
+  availability TherapistAvailability[]
+  testimonials Testimonial[]
+  bookings     TherapyBooking[]
+}
+
+model TherapistAvailability {
+  id           String @id @default(cuid())
+  counsellorId String
+  dayOfWeek    Int    // 0=Sun 1=Mon ... 6=Sat
+  startHour    Int    // 9 = 09:00
+  endHour      Int    // 17 = 17:00 (45-min slots generated at runtime)
+
+  counsellor Counsellor @relation(fields: [counsellorId], references: [id], onDelete: Cascade)
+}
+
+model Testimonial {
+  id           String @id @default(cuid())
+  counsellorId String
+  studentName  String
+  text         String @db.Text
+  rating       Int    @default(5)
+
+  counsellor Counsellor @relation(fields: [counsellorId], references: [id], onDelete: Cascade)
+}
+
+model TherapyBooking {
+  id              String        @id @default(cuid())
+  studentId       String
+  counsellorId    String
+  appointmentTime DateTime
+  status          BookingStatus @default(PENDING)
+  studentNotes    String?       @db.Text
+  createdAt       DateTime      @default(now())
+
+  student    User       @relation("TherapyBookingsAsStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  counsellor Counsellor @relation(fields: [counsellorId], references: [id], onDelete: Cascade)
 }

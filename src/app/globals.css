@@ -1,41 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: #fbf9f6; /* Warm off-white sand */
-    --foreground: #2d3748; /* Deep slate */
-    --primary: #8a9a86; /* Sage green */
+    --background: #f8f6f3;
+    --foreground: #2d3748;
+    --primary: #8a9a86;
+    /* Sage green */
     --primary-foreground: #ffffff;
-    --secondary: #d4a373; /* Muted terracotta */
+    --secondary: #d4a373;
+    /* Muted terracotta */
     --secondary-foreground: #ffffff;
-    --accent: #e9ecef; /* Soft gray for cards */
+    --accent: #e9ecef;
+    /* Soft gray for cards */
+
+    /* Mesh gradient color stops */
+    --mesh-1: rgba(196, 181, 253, 0.35);
+    /* Soft lavender */
+    --mesh-2: rgba(167, 243, 208, 0.28);
+    /* Mint */
+    --mesh-3: rgba(254, 243, 199, 0.40);
+    /* Cream */
+    --mesh-4: rgba(219, 234, 254, 0.25);
+    /* Sky blue */
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: #1a202c; /* Deep cool gray */
-      --foreground: #fbf9f6;
+      --background: #1a1d2e;
+      --foreground: #f0ece6;
       --primary: #9cb197;
       --secondary: #e2b689;
       --accent: #2d3748;
+      --mesh-1: rgba(139, 92, 246, 0.15);
+      --mesh-2: rgba(52, 211, 153, 0.10);
+      --mesh-3: rgba(251, 191, 36, 0.08);
+      --mesh-4: rgba(96, 165, 250, 0.10);
     }
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    color: var(--foreground);
+    background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse at 20% 10%, var(--mesh-1) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 20%, var(--mesh-2) 0%, transparent 50%),
+      radial-gradient(ellipse at 10% 80%, var(--mesh-3) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 85%, var(--mesh-4) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+    background-attachment: fixed;
+    font-family: var(--font-geist-sans), 'Inter', system-ui, sans-serif;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer utilities {
+
+  /* ── Glassmorphism card ── */
   .glass {
-    background: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.60);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 1.5rem;
+  }
+
+  /* ── Heavy glass for modals ── */
+  .glass-heavy {
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.50);
+    border-radius: 1.5rem;
+  }
+
+  /* ── Soft-UI Button base ── */
+  .soft-btn {
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  }
+
+  .soft-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  }
+
+  .soft-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ── Serif heading ── */
+  .heading-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* ── Pill tag ── */
+  .pill-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 }

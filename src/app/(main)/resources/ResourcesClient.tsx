@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    Search, PlayCircle, BookOpen, Music, X,
+    Search, BookOpen, Music, X,
     Star, BookMarked, Wind, Moon, Brain, Sparkles
 } from "lucide-react";
 import type { ResourceItem } from "@/app/actions/resources";
@@ -13,42 +13,57 @@ import type { ResourceItem } from "@/app/actions/resources";
 type Category = "All" | "ANXIETY" | "FOCUS" | "SLEEP" | "MINDFULNESS";
 
 const CATEGORIES: { key: Category; label: string; icon: React.ElementType; color: string }[] = [
-    { key: "All", label: "All", icon: Sparkles, color: "from-gray-500 to-gray-700" },
+    { key: "All", label: "All", icon: Sparkles, color: "from-slate-500 to-slate-700" },
     { key: "ANXIETY", label: "Anxiety", icon: Wind, color: "from-rose-400 to-pink-600" },
     { key: "FOCUS", label: "Focus", icon: Brain, color: "from-blue-400 to-indigo-600" },
     { key: "SLEEP", label: "Sleep", icon: Moon, color: "from-violet-400 to-purple-600" },
     { key: "MINDFULNESS", label: "Mindfulness", icon: BookMarked, color: "from-emerald-400 to-teal-600" },
 ];
 
-const TYPE_META: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-    VIDEO: { icon: PlayCircle, label: "Video", color: "text-rose-500" },
-    AUDIO: { icon: Music, label: "Audio", color: "text-violet-500" },
-    GUIDE: { icon: BookOpen, label: "Guide", color: "text-blue-500" },
+const TYPE_META: Record<string, { label: string; color: string }> = {
+    VIDEO: { label: "Video", color: "text-rose-400" },
+    AUDIO: { label: "Audio", color: "text-violet-400" },
+    GUIDE: { label: "Guide", color: "text-blue-400" },
 };
 
-const CAT_STYLES: Record<string, { bg: string; text: string; pill: string }> = {
-    ANXIETY: { bg: "bg-rose-100", text: "text-rose-700", pill: "bg-rose-500" },
-    FOCUS: { bg: "bg-blue-100", text: "text-blue-700", pill: "bg-blue-500" },
-    SLEEP: { bg: "bg-violet-100", text: "text-violet-700", pill: "bg-violet-500" },
-    MINDFULNESS: { bg: "bg-emerald-100", text: "text-emerald-700", pill: "bg-emerald-500" },
-    GENERAL: { bg: "bg-gray-100", text: "text-gray-700", pill: "bg-gray-500" },
+const CAT_STYLES: Record<string, { bg: string; text: string; gradFrom: string; gradTo: string; pillBg: string }> = {
+    ANXIETY: { bg: "bg-rose-50", text: "text-rose-600", gradFrom: "from-rose-200/60", gradTo: "to-pink-100/50", pillBg: "bg-rose-500/90" },
+    FOCUS: { bg: "bg-blue-50", text: "text-blue-600", gradFrom: "from-blue-200/60", gradTo: "to-indigo-100/50", pillBg: "bg-blue-500/90" },
+    SLEEP: { bg: "bg-violet-50", text: "text-violet-600", gradFrom: "from-violet-200/60", gradTo: "to-purple-100/50", pillBg: "bg-violet-500/90" },
+    MINDFULNESS: { bg: "bg-emerald-50", text: "text-emerald-600", gradFrom: "from-emerald-200/60", gradTo: "to-teal-100/50", pillBg: "bg-emerald-500/90" },
+    GENERAL: { bg: "bg-slate-50", text: "text-slate-600", gradFrom: "from-slate-200/60", gradTo: "to-gray-100/50", pillBg: "bg-slate-500/90" },
 };
 
-// Check if URL is a YouTube embed ID (11-char alphanumeric) vs external link
-function isYouTubeId(url: string): boolean {
-    return /^[a-zA-Z0-9_-]{11}$/.test(url.trim());
+// Extract YouTube ID from URL or return if it's already an 11-char ID
+function extractYouTubeId(url: string): string | null {
+    if (!url) return null;
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    return match ? match[1] : (/^[a-zA-Z0-9_-]{11}$/.test(url.trim()) ? url.trim() : null);
+}
+
+// ─── Custom Gradient Play Button ───────────────────────────
+function GradientPlayBtn({ className = "" }: { className?: string }) {
+    return (
+        <div
+            className={`flex items-center justify-center rounded-full bg-gradient-to-br from-white/35 to-white/10 backdrop-blur-md border border-white/40 shadow-[0_6px_24px_rgba(0,0,0,0.22)] ${className}`}
+        >
+            <svg viewBox="0 0 24 24" fill="white" className="w-[42%] h-[42%] ml-[8%] drop-shadow-lg">
+                <path d="M8 5.14v14l11-7-11-7z" />
+            </svg>
+        </div>
+    );
 }
 
 // ─── Video Modal ───────────────────────────────────────────
 function VideoModal({ resource, onClose }: { resource: ResourceItem; onClose: () => void }) {
-    const isYT = isYouTubeId(resource.url);
+    const ytId = extractYouTubeId(resource.url);
 
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] flex items-center justify-center p-4"
             onClick={onClose}
         >
             <motion.div
@@ -56,18 +71,18 @@ function VideoModal({ resource, onClose }: { resource: ResourceItem; onClose: ()
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.85, opacity: 0, y: 24 }}
                 transition={{ type: "spring", stiffness: 280, damping: 24 }}
-                className="bg-gray-950 rounded-2xl overflow-hidden shadow-2xl w-full max-w-3xl"
+                className="bg-gray-950 rounded-3xl overflow-hidden shadow-modal w-full max-w-3xl border border-white/10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Video Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
                     <div>
                         <p className="text-white font-bold text-base">{resource.title}</p>
-                        <p className="text-white/50 text-xs mt-0.5">{resource.duration}</p>
+                        <p className="text-white/40 text-xs mt-0.5">{resource.duration}</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                        className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -75,24 +90,23 @@ function VideoModal({ resource, onClose }: { resource: ResourceItem; onClose: ()
 
                 {/* Embed Area */}
                 <div className="aspect-video w-full bg-black">
-                    {isYT ? (
+                    {ytId ? (
                         <iframe
                             className="w-full h-full"
-                            src={`https://www.youtube.com/embed/${resource.url}?autoplay=1&rel=0`}
+                            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
                             title={resource.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                         />
                     ) : (
-                        // External link — show description + open button
                         <div className="flex flex-col items-center justify-center h-full gap-5 p-8 text-center">
                             <BookOpen className="w-16 h-16 text-white/30" />
-                            <p className="text-white/70 text-sm max-w-md leading-relaxed">{resource.description}</p>
+                            <p className="text-white/60 text-sm max-w-md leading-relaxed">{resource.description}</p>
                             <a
                                 href={resource.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-6 py-3 bg-primary text-white rounded-full font-semibold text-sm hover:bg-primary/90 transition-colors"
+                                className="px-6 py-3 bg-gradient-to-r from-primary to-[#6b8f66] text-white rounded-full font-semibold text-sm hover:opacity-90 transition shadow-[0_4px_14px_rgba(138,154,134,0.35)]"
                             >
                                 Open Resource ↗
                             </a>
@@ -116,11 +130,20 @@ function ResourceCard({
 }) {
     const typeMeta = TYPE_META[resource.type] ?? TYPE_META.GUIDE;
     const catStyle = CAT_STYLES[resource.category] ?? CAT_STYLES.GENERAL;
-    const TypeIcon = typeMeta.icon;
-    const isYT = resource.type === "VIDEO" && isYouTubeId(resource.url);
-    const thumbnail = isYT
-        ? `https://img.youtube.com/vi/${resource.url}/hqdefault.jpg`
-        : null;
+    const ytId = resource.type === "VIDEO" ? extractYouTubeId(resource.url) : null;
+    let thumbnail = ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : null;
+
+    if (!thumbnail) {
+        if (resource.type === "AUDIO") {
+            thumbnail = "https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=1000&auto=format&fit=crop";
+        } else if (resource.type === "GUIDE") {
+            thumbnail = "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1000&auto=format&fit=crop";
+        }
+    }
+
+    const isVideo = resource.type === "VIDEO";
+    const isAudio = resource.type === "AUDIO";
+    const showPlayBtn = isVideo || isAudio;
 
     return (
         <motion.div
@@ -129,10 +152,11 @@ function ResourceCard({
             transition={{ delay: index * 0.05, duration: 0.3 }}
             layout
             onClick={onClick}
-            className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col cursor-pointer border border-gray-100"
+            className="glass overflow-hidden hover:-translate-y-1.5 transition-all duration-300 group flex flex-col cursor-pointer"
+            style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.8) inset" }}
         >
             {/* Thumbnail / Cover */}
-            <div className="h-48 relative overflow-hidden flex-shrink-0">
+            <div className="h-48 relative overflow-hidden flex-shrink-0 rounded-t-3xl">
                 {thumbnail ? (
                     <img
                         src={thumbnail}
@@ -140,58 +164,76 @@ function ResourceCard({
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
-                    <div className={`w-full h-full flex items-center justify-center ${catStyle.bg}`}>
-                        <TypeIcon className={`w-16 h-16 ${catStyle.text} opacity-50 group-hover:scale-110 transition-transform duration-300`} />
+                    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${catStyle.gradFrom} ${catStyle.gradTo}`}>
+                        {!showPlayBtn && (
+                            <BookOpen className={`w-14 h-14 ${catStyle.text} opacity-40 group-hover:scale-110 transition-transform duration-300`} />
+                        )}
+                        {isAudio && (
+                            <Music className={`w-14 h-14 ${catStyle.text} opacity-40 group-hover:scale-110 transition-transform duration-300`} />
+                        )}
                     </div>
                 )}
 
                 {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-90" />
 
-                {/* Type badge */}
-                <div className="absolute top-3 left-3 bg-white/15 backdrop-blur-md rounded-full px-2.5 py-1 flex items-center gap-1.5">
-                    <TypeIcon className={`w-3.5 h-3.5 ${typeMeta.color}`} />
-                    <span className="text-white text-xs font-semibold">{typeMeta.label}</span>
+                {/* Type badge top-left */}
+                <div className="absolute top-3 left-3 bg-black/30 backdrop-blur-md rounded-full px-2.5 py-1 flex items-center gap-1.5 border border-white/15">
+                    <span className={`text-white text-[11px] font-bold`}>{typeMeta.label}</span>
                 </div>
 
-                {/* Featured badge */}
+                {/* Featured badge top-right */}
                 {resource.isFeatured && (
-                    <div className="absolute top-3 right-3 bg-amber-400/90 backdrop-blur-sm rounded-full px-2 py-0.5 flex items-center gap-1">
+                    <div className="absolute top-3 right-3 bg-amber-400/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 border border-amber-300/30 shadow-sm">
                         <Star className="w-3 h-3 text-white fill-white" />
-                        <span className="text-white text-[10px] font-bold">Featured</span>
+                        <span className="text-white text-[10px] font-bold tracking-wide">FEATURED</span>
                     </div>
                 )}
 
-                {/* Duration */}
+                {/* Duration bottom-right */}
                 {resource.duration && (
-                    <span className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm font-medium">
+                    <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2.5 py-0.5 rounded-full backdrop-blur-sm font-medium border border-white/10">
                         {resource.duration}
                     </span>
                 )}
 
-                {/* Play overlay for videos */}
-                {resource.type === "VIDEO" && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-4">
-                            <PlayCircle className="w-12 h-12 text-white" />
-                        </div>
+                {/* Custom gradient play button — always visible for video/audio */}
+                {showPlayBtn && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <GradientPlayBtn className="w-16 h-16 group-hover:scale-110 transition-transform duration-250" />
                     </div>
                 )}
             </div>
 
             {/* Content */}
-            <div className="p-5 flex-1 flex flex-col gap-2">
-                <span className={`text-xs font-bold uppercase tracking-wider ${catStyle.text}`}>
-                    {resource.category.charAt(0) + resource.category.slice(1).toLowerCase()}
+            <div className="p-5 flex-1 flex flex-col gap-2.5">
+                {/* Category pill tag */}
+                <span className={`pill-tag ${catStyle.pillBg} text-white w-fit`}>
+                    {resource.category}
                 </span>
-                <h3 className="text-base font-bold text-gray-900 group-hover:text-primary transition-colors leading-snug line-clamp-2">
+                <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
                     {resource.title}
                 </h3>
-                <p className="text-sm text-gray-500 line-clamp-2 mt-auto leading-relaxed">
+                <p className="text-sm text-foreground/55 line-clamp-2 mt-auto leading-relaxed">
                     {resource.description}
                 </p>
             </div>
         </motion.div>
+    );
+}
+
+// ─── Skeleton Loader ────────────────────────────────────────
+function SkeletonCard() {
+    return (
+        <div className="glass overflow-hidden rounded-3xl flex flex-col animate-pulse">
+            <div className="h-48 rounded-t-3xl bg-gradient-to-br from-slate-200/60 to-slate-100/40" />
+            <div className="p-5 flex flex-col gap-3">
+                <div className="h-4 w-20 rounded-full bg-slate-200/80" />
+                <div className="h-5 w-3/4 rounded-full bg-slate-200/70" />
+                <div className="h-4 w-full rounded-full bg-slate-200/50" />
+                <div className="h-4 w-2/3 rounded-full bg-slate-200/50" />
+            </div>
+        </div>
     );
 }
 
@@ -200,6 +242,7 @@ export function ResourcesClient({ resources }: { resources: ResourceItem[] }) {
     const [activeCategory, setActiveCategory] = useState<Category>("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [activeResource, setActiveResource] = useState<ResourceItem | null>(null);
+    const [isLoading] = useState(false); // flip to true to preview skeletons
 
     const filtered = useMemo(() => {
         let result = resources;
@@ -222,11 +265,11 @@ export function ResourcesClient({ resources }: { resources: ResourceItem[] }) {
     }, [resources, activeCategory, searchQuery]);
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full space-y-8">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-extrabold text-foreground mb-2">Resource Hub</h1>
-                <p className="text-foreground/70 font-medium text-lg">
+                <h1 className="heading-serif text-4xl text-foreground mb-2">Resource Hub</h1>
+                <p className="text-foreground/60 font-medium text-lg leading-relaxed">
                     Curated materials to help you navigate college life.
                 </p>
             </div>
@@ -235,19 +278,19 @@ export function ResourcesClient({ resources }: { resources: ResourceItem[] }) {
             <div className="flex flex-col gap-4">
                 {/* Search Bar */}
                 <div className="relative w-full sm:max-w-md">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
                     <input
                         type="text"
                         id="resource-search"
                         placeholder="Search guides, audio, videos..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded-full py-2.5 pl-10 pr-4 text-foreground placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-sm text-sm"
+                        className="w-full bg-white/60 backdrop-blur-md border border-white/40 rounded-full py-3 pl-11 pr-4 text-foreground placeholder-foreground/35 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-[0_4px_16px_rgba(0,0,0,0.05)] text-sm"
                     />
                     {searchQuery && (
                         <button
                             onClick={() => setSearchQuery("")}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-foreground/70 transition-colors"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -262,18 +305,18 @@ export function ResourcesClient({ resources }: { resources: ResourceItem[] }) {
                         return (
                             <motion.button
                                 key={cat.key}
-                                whileHover={{ scale: 1.04 }}
+                                whileHover={{ scale: 1.04, y: -1 }}
                                 whileTap={{ scale: 0.96 }}
                                 onClick={() => setActiveCategory(cat.key)}
-                                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap shadow-sm ${isActive
-                                        ? `bg-gradient-to-r ${cat.color} text-white shadow-md`
-                                        : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive
+                                    ? `bg-gradient-to-r ${cat.color} text-white shadow-[0_4px_16px_rgba(0,0,0,0.15)]`
+                                    : "bg-white/60 backdrop-blur-sm text-foreground/60 hover:bg-white/80 border border-white/50 shadow-sm"
                                     }`}
                             >
                                 <Icon className="w-3.5 h-3.5" />
                                 {cat.label}
                                 {isActive && activeCategory !== "All" && (
-                                    <span className="bg-white/30 text-white text-xs rounded-full px-1.5 ml-1 font-bold">
+                                    <span className="bg-white/30 text-white text-xs rounded-full px-1.5 ml-0.5 font-bold">
                                         {filtered.length}
                                     </span>
                                 )}
@@ -285,54 +328,71 @@ export function ResourcesClient({ resources }: { resources: ResourceItem[] }) {
 
             {/* Results count */}
             {(searchQuery || activeCategory !== "All") && (
-                <p className="text-sm text-gray-500 -mt-2">
-                    Showing <span className="font-semibold text-gray-800">{filtered.length}</span> result
+                <p className="text-sm text-foreground/50 -mt-2">
+                    Showing <span className="font-semibold text-foreground/80">{filtered.length}</span> result
                     {filtered.length !== 1 && "s"}
-                    {searchQuery && <> for "<span className="font-semibold">{searchQuery}</span>"</>}
+                    {searchQuery && <> for &ldquo;<span className="font-semibold">{searchQuery}</span>&rdquo;</>}
                 </p>
             )}
 
+            {/* Skeleton Loader */}
+            {isLoading && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+                </div>
+            )}
+
             {/* Grid / Empty State */}
-            <AnimatePresence mode="wait">
-                {filtered.length === 0 ? (
-                    <motion.div
-                        key="empty"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="flex flex-col items-center justify-center py-24 text-center"
-                    >
-                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-5">
-                            <Search className="w-9 h-9 text-gray-300" />
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-700 mb-2">No resources found</h3>
-                        <p className="text-gray-400 text-sm max-w-xs">
-                            Try a different keyword or category. New content is added regularly.
-                        </p>
-                        <button
-                            onClick={() => { setSearchQuery(""); setActiveCategory("All"); }}
-                            className="mt-5 px-5 py-2.5 rounded-full bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors"
+            {!isLoading && (
+                <AnimatePresence mode="wait">
+                    {filtered.length === 0 ? (
+                        <motion.div
+                            key="empty"
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col items-center justify-center py-24 text-center"
                         >
-                            Clear filters
-                        </button>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="grid"
-                        layout
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                    >
-                        {filtered.map((resource, i) => (
-                            <ResourceCard
-                                key={resource.id}
-                                resource={resource}
-                                index={i}
-                                onClick={() => setActiveResource(resource)}
-                            />
-                        ))}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                            <div className="w-20 h-20 glass rounded-full flex items-center justify-center mb-5">
+                                <Search className="w-9 h-9 text-foreground/25" />
+                            </div>
+                            <h3 className="heading-serif text-xl text-foreground/70 mb-2">No resources found</h3>
+                            <p className="text-foreground/45 text-sm max-w-xs leading-relaxed">
+                                Try a different keyword or category. New content is added regularly.
+                            </p>
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => { setSearchQuery(""); setActiveCategory("All"); }}
+                                className="mt-6 px-6 py-2.5 rounded-full bg-primary/10 text-primary font-semibold text-sm hover:bg-primary/20 transition-colors border border-primary/20"
+                            >
+                                Clear filters
+                            </motion.button>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="grid"
+                            layout
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                        >
+                            {filtered.map((resource, i) => (
+                                <ResourceCard
+                                    key={resource.id}
+                                    resource={resource}
+                                    index={i}
+                                    onClick={() => {
+                                        if (resource.type === "VIDEO") {
+                                            setActiveResource(resource);
+                                        } else {
+                                            window.open(resource.url, "_blank", "noopener,noreferrer");
+                                        }
+                                    }}
+                                />
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            )}
 
             {/* Video / Resource Modal */}
             <AnimatePresence>

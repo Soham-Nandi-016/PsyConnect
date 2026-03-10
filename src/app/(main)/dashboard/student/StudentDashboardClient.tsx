@@ -144,7 +144,7 @@ function BookingModal({ counsellors, onClose }: { counsellors: Counsellor[]; onC
                         <CheckCircle2 className="w-14 h-14 text-teal-500 mx-auto mb-3" />
                         <h3 className="text-xl font-extrabold text-slate-900 mb-2">Session Booked!</h3>
                         <p className="text-slate-500 text-sm mb-5">Your request is submitted. You'll get a confirmation soon.</p>
-                        <button onClick={onClose} className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold">Done</button>
+                        <button onClick={onClose} className="bg-gradient-to-r from-primary to-[#6b8f66] text-white px-6 py-2.5 rounded-full font-bold shadow-[0_4px_14px_rgba(138,154,134,0.35)]">Done</button>
                     </div>
                 ) : (
                     <>
@@ -181,7 +181,7 @@ function BookingModal({ counsellors, onClose }: { counsellors: Counsellor[]; onC
                             className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 mb-5" />
 
                         <button onClick={handleBook} disabled={!selectedId || !dateStr || isPending}
-                            className="w-full bg-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            className="w-full bg-gradient-to-r from-primary to-[#6b8f66] text-white py-3.5 rounded-full font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(138,154,134,0.35)] transition-all">
                             {isPending ? "Booking..." : <><CheckCircle2 className="w-4 h-4" /> Confirm Booking</>}
                         </button>
                     </>
@@ -478,7 +478,7 @@ function WellnessJourneyModal({
                             <button
                                 type="button"
                                 onClick={handleNext}
-                                className="flex items-center gap-1.5 bg-primary text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-primary/90 active:scale-95 transition-all shadow-md shadow-primary/20"
+                                className="flex items-center gap-1.5 bg-gradient-to-r from-primary to-[#6b8f66] text-white text-sm font-bold px-5 py-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-[0_4px_14px_rgba(138,154,134,0.30)]"
                             >
                                 Next <ChevronRight className="w-4 h-4" />
                             </button>
@@ -487,7 +487,7 @@ function WellnessJourneyModal({
                                 type="button"
                                 onClick={handleSubmit}
                                 disabled={isPending}
-                                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary/20"
+                                className="flex items-center gap-2 bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold px-5 py-2.5 rounded-full hover:opacity-90 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-[0_4px_16px_rgba(138,154,134,0.35)]"
                             >
                                 {isPending
                                     ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
@@ -591,23 +591,23 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
                         </div>
                         <div>
                             <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">{greeting} 👋</p>
-                            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground leading-tight">Hello, {firstName}!</h1>
+                            <h1 className="heading-serif text-2xl sm:text-3xl text-foreground leading-tight">Hello, {firstName}!</h1>
                             <p className="text-slate-400 text-xs font-medium">{userRole === "COUNSELLOR" ? "Counsellor" : "Student"} • PsyConnect</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <Link href="/resources">
-                            <button className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white/70 border border-slate-200 px-3 py-2 rounded-xl hover:bg-white transition-all shadow-sm">
+                            <button className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white/60 backdrop-blur-sm border border-white/50 px-4 py-2 rounded-full hover:bg-white/80 transition-all shadow-sm">
                                 <BookOpen className="w-4 h-4" /> Resources
                             </button>
                         </Link>
                         <Link href="/forum">
-                            <button className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white/70 border border-slate-200 px-3 py-2 rounded-xl hover:bg-white transition-all shadow-sm">
+                            <button className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 bg-white/60 backdrop-blur-sm border border-white/50 px-4 py-2 rounded-full hover:bg-white/80 transition-all shadow-sm">
                                 <MessageSquare className="w-4 h-4" /> Forum
                             </button>
                         </Link>
                         <button onClick={() => setShowBooking(true)}
-                            className="flex items-center gap-1.5 text-sm font-bold text-white bg-primary px-4 py-2 rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+                            className="flex items-center gap-1.5 text-sm font-bold text-white bg-gradient-to-r from-primary to-[#6b8f66] px-5 py-2 rounded-full hover:opacity-90 transition-all shadow-[0_4px_14px_rgba(138,154,134,0.35)]">
                             <Calendar className="w-4 h-4" /> Book Session
                         </button>
                     </div>
@@ -623,7 +623,7 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
 
                         {/* ── Mood & Stress Analysis Card ── */}
                         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-                            className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/70 shadow-md p-6"
+                            className="glass p-6"
                         >
                             <div className="flex items-center gap-2 mb-6">
                                 <BrainCircuit className="w-5 h-5 text-violet-500" />
@@ -682,7 +682,7 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
 
                         {/* ── 7-Day Mood Trend Chart ── */}
                         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
-                            className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/70 shadow-md p-6"
+                            className="glass p-6"
                         >
                             <div className="flex items-center gap-2 mb-4">
                                 <TrendingUp className="w-5 h-5 text-primary" />
@@ -698,46 +698,37 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
                             </div>
                         </motion.div>
 
-                        {/* ── Therapist For You — horizontal banner ── */}
+
+                        {/* ── Smart Match — Therapist Discovery ── */}
                         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                            className="bg-gradient-to-br from-teal-50 to-emerald-50 backdrop-blur-xl rounded-3xl border border-teal-100 shadow-md p-5"
+                            className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl shadow-lg shadow-indigo-200 p-6 text-white"
                         >
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center text-white font-extrabold text-lg flex-shrink-0">
-                                        {recommendedCounsellor
-                                            ? (recommendedCounsellor.name ?? recommendedCounsellor.email)[0].toUpperCase()
-                                            : "?"}
+                            <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10" />
+                            <div className="absolute -bottom-4 -left-4 w-20 h-20 rounded-full bg-white/5" />
+                            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Sparkles className="w-4 h-4 text-indigo-200" />
+                                        <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider">AI Smart Match</span>
                                     </div>
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                                            <span className="text-xs font-bold text-teal-600 uppercase tracking-wide">Therapist For You — AI Match</span>
-                                        </div>
-                                        <p className="font-bold text-slate-800 truncate">{recommendedCounsellor?.name ?? "No counsellors yet"}</p>
-                                        <p className="text-xs text-teal-600 font-medium">{recommendedSpecialty}</p>
-                                        {recommendedCounsellor && (
-                                            <div className="flex items-center gap-0.5 mt-0.5">
-                                                {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />)}
-                                                <span className="text-[10px] text-slate-400 ml-1">5.0</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                                    <p className="text-xs text-slate-400">
-                                        Based on <span className={`font-semibold ${sm.text}`}>{sm.label.toLowerCase()} stress</span> ({latestStress}%)
+                                    <h3 className="font-extrabold text-lg leading-tight mb-1">Find Your Ideal Support</h3>
+                                    <p className="text-indigo-100 text-xs leading-relaxed">
+                                        Based on your{" "}
+                                        <span className={`font-bold ${sm.label === "High" ? "text-red-300" : sm.label === "Moderate" ? "text-amber-300" : "text-emerald-300"}`}>
+                                            {sm.label.toLowerCase()} stress analysis ({latestStress}%)
+                                        </span>
+                                        {", "}we&apos;ve identified 3 specialists who fit your profile.
                                     </p>
-                                    {recommendedCounsellor && (
-                                        <button onClick={() => setShowBooking(true)}
-                                            className="flex items-center gap-1.5 bg-teal-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-teal-700 transition-colors">
-                                            <Calendar className="w-3.5 h-3.5" />
-                                            Book Now
-                                        </button>
-                                    )}
                                 </div>
+                                <Link href="/therapy/browse" className="flex-shrink-0">
+                                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                                        className="flex items-center gap-2 bg-white text-indigo-700 text-sm font-extrabold px-5 py-3 rounded-2xl hover:bg-indigo-50 transition-all shadow-md">
+                                        Explore Matches <ChevronRight className="w-4 h-4" />
+                                    </motion.button>
+                                </Link>
                             </div>
                         </motion.div>
+
                     </div>
 
                     {/* ═══════════════════════════════════════════════════════
@@ -747,7 +738,7 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
 
                         {/* ── Mood Check-In / AI Wellness ── */}
                         <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
-                            className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/70 shadow-md p-5"
+                            className="glass p-5"
                         >
                             <div className="flex items-center gap-2 mb-1">
                                 <Activity className="w-4 h-4 text-secondary" />
@@ -767,9 +758,9 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
                                     />
                                 ) : (
                                     <motion.button key="cta"
-                                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                                        whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
                                         onClick={() => setShowWellness(true)}
-                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3.5 rounded-2xl shadow-md shadow-primary/20 hover:opacity-90 transition-all">
+                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-secondary text-white font-bold py-3.5 rounded-full shadow-[0_6px_20px_rgba(138,154,134,0.35),inset_0_1px_0_rgba(255,255,255,0.20)] hover:opacity-90 hover:shadow-[0_8px_28px_rgba(138,154,134,0.45)] transition-all">
                                         <BrainCircuit className="w-4 h-4" />
                                         Start Wellness Journey
                                     </motion.button>
@@ -804,7 +795,7 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
                                     <Clock className="w-7 h-7 text-white/40 mx-auto mb-2" />
                                     <p className="text-white/60 text-xs mb-3">No upcoming sessions</p>
                                     <button onClick={() => setShowBooking(true)}
-                                        className="bg-white text-primary text-xs font-bold px-4 py-1.5 rounded-lg hover:bg-white/90 transition-colors">
+                                        className="flex items-center gap-1.5 bg-teal-600 text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-teal-700 transition-all shadow-[0_3px_12px_rgba(13,148,136,0.30)]">
                                         Book now →
                                     </button>
                                 </div>
@@ -813,7 +804,7 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
 
                         {/* ── Counsellor Connect ── */}
                         <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.22 }}
-                            className="bg-white/60 backdrop-blur-xl rounded-3xl border border-white/70 shadow-md p-5"
+                            className="glass p-5"
                         >
                             <div className="flex items-center gap-2 mb-4">
                                 <MessageSquare className="w-4 h-4 text-primary" />
@@ -832,7 +823,7 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
                                             <p className="text-[10px] text-emerald-500 font-medium">● Online</p>
                                         </div>
                                         <Link href="/forum">
-                                            <button className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-lg hover:bg-primary/20 transition-colors">
+                                            <button className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full hover:bg-primary/20 transition-colors border border-primary/15">
                                                 Chat
                                             </button>
                                         </Link>
@@ -840,7 +831,7 @@ export function StudentDashboardClient({ userName, userRole, moodLogs, upcomingB
                                 ))}
                             </div>
                             <Link href="/forum" className="block mt-3">
-                                <button className="w-full text-xs font-bold text-white bg-primary py-2.5 rounded-xl hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5">
+                                <button className="w-full text-xs font-bold text-white bg-gradient-to-r from-primary to-[#6b8f66] py-2.5 rounded-full hover:opacity-90 transition-all shadow-[0_3px_12px_rgba(138,154,134,0.30)] flex items-center justify-center gap-1.5">
                                     <ArrowRight className="w-3.5 h-3.5" /> Open Forum
                                 </button>
                             </Link>

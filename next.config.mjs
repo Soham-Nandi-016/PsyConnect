@@ -1,10 +1,12 @@
-/** @type {import('next').NextConfig} */
+
+
 const nextConfig = {
-    eslint: {
-        // ESLint runs separately via `npm run lint`. Warnings won't block the build.
-        ignoreDuringBuilds: true,
+    images: {
+        remotePatterns: [
+            { protocol: 'https', hostname: 'img.youtube.com' },
+            { protocol: 'https', hostname: 'i.ytimg.com' },
+        ],
     },
-};
+}
 
-export default nextConfig;
-
+export default nextConfig

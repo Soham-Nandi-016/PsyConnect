@@ -28,31 +28,34 @@ export function Navbar() {
 
     return (
         <>
-            <nav className="w-full bg-white/70 backdrop-blur-md sticky top-0 z-50 border-b border-secondary/20 shadow-sm relative z-[100]">
+            <nav className="w-full bg-white/60 backdrop-blur-xl sticky top-0 z-[100] border-b border-white/30 shadow-[0_4px_30px_rgba(0,0,0,0.04)]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 group">
+                    <Link href="/" className="flex items-center gap-2.5 group">
                         <motion.div
-                            whileHover={{ rotate: 10 }}
-                            className="bg-primary/20 p-2 rounded-lg"
+                            whileHover={{ rotate: 12, scale: 1.08 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                            className="bg-gradient-to-tr from-primary/20 to-secondary/20 p-2 rounded-2xl shadow-sm border border-white/50"
                         >
-                            <Users className="w-6 h-6 text-primary font-bold group-hover:text-primary transition-colors" />
+                            <Users className="w-5 h-5 text-primary font-bold" />
                         </motion.div>
-                        <span className="text-xl font-bold text-foreground tracking-tight">PsyConnect</span>
+                        <span className="text-xl font-bold text-foreground tracking-tight">
+                            Psy<span className="text-primary">Connect</span>
+                        </span>
                     </Link>
 
                     {/* Desktop Links */}
-                    <div className="hidden md:flex items-center gap-6 font-medium text-foreground/80">
+                    <div className="hidden md:flex items-center gap-6 font-medium text-foreground/70">
                         {links.map((link) => (
                             <Link
                                 key={link.name}
                                 href={link.href}
-                                className={`transition-colors flex items-center gap-1.5 hover:text-primary relative ${pathname === link.href ? "text-primary font-semibold" : ""
+                                className={`transition-all flex items-center gap-1.5 hover:text-primary relative px-1 py-0.5 ${pathname === link.href ? "text-primary font-semibold" : ""
                                     }`}
                             >
                                 {pathname === link.href && (
                                     <motion.div
                                         layoutId="navbar-indicator"
-                                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full"
+                                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-secondary rounded-full"
                                     />
                                 )}
                                 {link.name}
@@ -62,13 +65,15 @@ export function Navbar() {
 
                     <div className="hidden md:flex items-center gap-3">
                         <Link href="/auth/signin">
-                            <button className="text-sm font-semibold text-foreground/80 hover:text-primary transition-colors">Sign In</button>
+                            <button className="text-sm font-semibold text-foreground/70 hover:text-primary transition-colors px-3 py-2 rounded-full hover:bg-primary/5">
+                                Sign In
+                            </button>
                         </Link>
                         <Link href="/community">
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="bg-primary text-primary-foreground px-5 py-2 rounded-full text-sm font-semibold hover:bg-primary/90 transition-shadow shadow-md hover:shadow-lg flex items-center gap-2"
+                                whileHover={{ scale: 1.04, y: -1 }}
+                                whileTap={{ scale: 0.97 }}
+                                className="bg-gradient-to-r from-primary to-[#6b8f66] text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-[0_4px_14px_rgba(138,154,134,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] hover:shadow-[0_6px_20px_rgba(138,154,134,0.45)] flex items-center gap-2"
                             >
                                 Join Community <ArrowRight className="w-4 h-4" />
                             </motion.button>
@@ -77,12 +82,13 @@ export function Navbar() {
 
                     {/* Mobile menu button */}
                     <div className="md:hidden flex items-center">
-                        <button
+                        <motion.button
+                            whileTap={{ scale: 0.92 }}
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="text-foreground p-2 focus:outline-none"
+                            className="text-foreground p-2 rounded-xl hover:bg-primary/10 focus:outline-none transition-colors"
                         >
-                            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                        </button>
+                            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                        </motion.button>
                     </div>
                 </div>
             </nav>
@@ -91,12 +97,13 @@ export function Navbar() {
             <AnimatePresence>
                 {isMobileMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="md:hidden fixed inset-x-0 top-16 bg-white border-b border-accent shadow-lg z-40"
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.18 }}
+                        className="md:hidden fixed inset-x-0 top-16 bg-white/80 backdrop-blur-xl border-b border-white/40 shadow-[0_16px_40px_rgba(0,0,0,0.08)] z-40"
                     >
-                        <div className="flex flex-col px-4 py-6 gap-4">
+                        <div className="flex flex-col px-4 py-6 gap-2">
                             {links.map((link) => {
                                 const Icon = link.icon;
                                 return (
@@ -104,21 +111,24 @@ export function Navbar() {
                                         key={link.name}
                                         href={link.href}
                                         onClick={() => setIsMobileMenuOpen(false)}
-                                        className="flex items-center gap-3 text-lg font-medium text-foreground/80 hover:text-primary transition-colors p-2 rounded-md hover:bg-accent/50"
+                                        className={`flex items-center gap-3 text-base font-medium p-3 rounded-2xl transition-all ${pathname === link.href
+                                                ? "text-primary bg-primary/10 font-semibold"
+                                                : "text-foreground/70 hover:text-primary hover:bg-primary/5"
+                                            }`}
                                     >
                                         {Icon && <Icon className="w-5 h-5" />}
                                         {link.name}
                                     </Link>
-                                )
+                                );
                             })}
-                            <div className="border-t border-accent mt-2 pt-4 flex flex-col gap-3">
+                            <div className="border-t border-white/60 mt-3 pt-4 flex flex-col gap-3">
                                 <Link href="/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <button className="w-full bg-accent/30 text-foreground py-3 rounded-xl font-bold border border-accent">
+                                    <button className="w-full bg-white/70 text-foreground py-3 rounded-2xl font-semibold border border-white/50 hover:bg-white transition-all shadow-sm">
                                         Sign In
                                     </button>
                                 </Link>
                                 <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <button className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold shadow-md">
+                                    <button className="w-full bg-gradient-to-r from-primary to-[#6b8f66] text-white py-3 rounded-2xl font-bold shadow-[0_4px_14px_rgba(138,154,134,0.35)]">
                                         Join Community
                                     </button>
                                 </Link>
