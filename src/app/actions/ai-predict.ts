@@ -89,8 +89,19 @@ export async function predictAndSave(input: WellnessInput): Promise<PredictResul
         }
 
         const result = await res.json();
-        stressScore = result.stress_score;
-        label = result.label;
+        let baseStress = result.stress_score;
+
+        // Weighted Prediction: Adjust score based on Sentiment Analysis
+        if (journalSentiment < 0) {
+            // Negative sentiment increases stress score significantly
+            baseStress += Math.abs(journalSentiment) * 20;
+        } else if (journalSentiment > 0) {
+            // Positive sentiment relieves stress score mildly
+            baseStress -= journalSentiment * 10;
+        }
+
+        stressScore = Math.min(100, Math.max(0, Math.round(baseStress)));
+        label = stressScore < 35 ? "Low" : stressScore < 65 ? "Moderate" : "High";
 
     } catch (err) {
         // Flask is down — fall back to heuristic so the form still saves

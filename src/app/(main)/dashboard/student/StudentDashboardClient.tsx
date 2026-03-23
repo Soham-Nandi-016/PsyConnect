@@ -195,20 +195,16 @@ function BookingModal({ counsellors, onClose }: { counsellors: Counsellor[]; onC
 function Slider({ label, value, min, max, step = 1, unit = "", onChange }: {
     label: string; value: number; min: number; max: number; step?: number; unit?: string; onChange: (v: number) => void;
 }) {
-    const pct = ((value - min) / (max - min)) * 100;
     return (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
             <div className="flex justify-between text-xs">
                 <span className="font-semibold text-slate-700">{label}</span>
-                <span className="font-bold text-primary">{value}{unit}</span>
+                <span className="font-bold text-indigo-600">{value}{unit}</span>
             </div>
-            <div className="relative h-2 bg-slate-100 rounded-full">
-                <div className="absolute h-full rounded-full bg-gradient-to-r from-primary to-secondary" style={{ width: `${pct}%` }} />
-                <input type="range" min={min} max={max} step={step} value={value}
-                    onChange={e => onChange(Number(e.target.value))}
-                    className="absolute inset-0 w-full opacity-0 cursor-pointer h-2" />
-            </div>
-            <div className="flex justify-between text-[10px] text-slate-300">
+            <input type="range" min={min} max={max} step={step} value={value}
+                onChange={e => onChange(Number(e.target.value))}
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+            <div className="flex justify-between text-[10px] text-slate-400 font-medium">
                 <span>{min}{unit}</span><span>{max}{unit}</span>
             </div>
         </div>
@@ -261,6 +257,9 @@ function WellnessJourneyModal({
         if (s === 1 && moodScore === null) return "Please select how you're feeling before continuing.";
         return "";
     };
+
+    // User Debugging Logger
+    console.log("Current State:", { moodScore, sleepDuration, sleepLatency, journalEntry });
 
     const handleNext = () => {
         const err = validate(step);
@@ -386,7 +385,7 @@ function WellnessJourneyModal({
                                     <div className="flex justify-between mb-5 bg-slate-50 rounded-2xl p-3">
                                         {MOOD_EMOJIS.map(({ e, s, l }) => (
                                             <button key={s} type="button" onClick={() => { setMoodScore(s); setValidationError(""); }}
-                                                className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl flex-1 transition-all duration-200 ${moodScore === s ? "bg-white shadow-md scale-110 -translate-y-1" : "hover:bg-white/80"
+                                                className={`flex flex-col items-center gap-2 p-3 rounded-2xl flex-1 transition-all duration-200 border-2 ${moodScore === s ? "bg-indigo-50 border-indigo-600 shadow-md scale-105" : "bg-white border-transparent hover:border-slate-200"
                                                     }`}>
                                                 <span className="text-3xl leading-none">{e}</span>
                                                 <span className={`text-[10px] font-bold ${moodScore === s ? "text-primary" : "text-slate-400"}`}>{l}</span>
@@ -414,11 +413,21 @@ function WellnessJourneyModal({
                                     <p className="text-sm font-semibold text-slate-600 -mb-2">Tell us about last night's sleep.</p>
                                     <Slider label="Sleep Duration" value={sleepDuration} min={0} max={12} step={0.5} unit="h" onChange={setSleepDuration} />
                                     <Slider label="Time to Fall Asleep" value={sleepLatency} min={0} max={90} unit=" min" onChange={setSleepLatency} />
-                                    <div className={`rounded-2xl px-4 py-3 text-xs font-semibold ${sleepDuration >= 7 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                                        }`}>
-                                        {sleepDuration >= 7
-                                            ? `✅ ${sleepDuration}h is great! Adults need 7–9 hours.`
-                                            : `⚠️ ${sleepDuration}h is below recommended. Sleep deprivation raises stress significantly.`}
+                                    <div className="flex flex-col gap-2">
+                                        <div className={`rounded-2xl px-4 py-3 text-xs font-semibold ${sleepDuration >= 7 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                                            }`}>
+                                            {sleepDuration >= 7
+                                                ? `✅ ${sleepDuration}h is great! Adults need 7–9 hours.`
+                                                : `⚠️ ${sleepDuration}h is below recommended. Sleep deprivation raises stress significantly.`}
+                                        </div>
+                                        <div className={`rounded-2xl px-4 py-3 text-xs font-semibold ${sleepLatency <= 20 ? "bg-emerald-50 text-emerald-600" : sleepLatency > 45 ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
+                                            }`}>
+                                            {sleepLatency <= 20
+                                                ? `✅ ${sleepLatency} mins is a healthy fall-sleep time.`
+                                                : sleepLatency > 45
+                                                ? `🚨 ${sleepLatency} mins might indicate insomnia. This often correlates with high anxiety.`
+                                                : `⚠️ ${sleepLatency} mins is slightly elevated. A wind-down routine could help.`}
+                                        </div>
                                     </div>
                                 </motion.div>
                             ) : step === 3 ? (

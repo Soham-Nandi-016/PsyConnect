@@ -10,10 +10,11 @@ import type { ResourceItem } from "@/app/actions/resources";
 
 // ─── Types & Constants ─────────────────────────────────────
 
-type Category = "All" | "ANXIETY" | "FOCUS" | "SLEEP" | "MINDFULNESS";
+type Category = "All" | "ANXIETY" | "FOCUS" | "SLEEP" | "MINDFULNESS" | "GENERAL";
 
 const CATEGORIES: { key: Category; label: string; icon: React.ElementType; color: string }[] = [
     { key: "All", label: "All", icon: Sparkles, color: "from-slate-500 to-slate-700" },
+    { key: "GENERAL", label: "Academic", icon: BookOpen, color: "from-amber-400 to-orange-600" },
     { key: "ANXIETY", label: "Anxiety", icon: Wind, color: "from-rose-400 to-pink-600" },
     { key: "FOCUS", label: "Focus", icon: Brain, color: "from-blue-400 to-indigo-600" },
     { key: "SLEEP", label: "Sleep", icon: Moon, color: "from-violet-400 to-purple-600" },
@@ -56,7 +57,6 @@ function GradientPlayBtn({ className = "" }: { className?: string }) {
 
 // ─── Video Modal ───────────────────────────────────────────
 function VideoModal({ resource, onClose }: { resource: ResourceItem; onClose: () => void }) {
-    const ytId = extractYouTubeId(resource.url);
 
     return (
         <motion.div
@@ -90,10 +90,10 @@ function VideoModal({ resource, onClose }: { resource: ResourceItem; onClose: ()
 
                 {/* Embed Area */}
                 <div className="aspect-video w-full bg-black">
-                    {ytId ? (
+                    {resource.type === "VIDEO" ? (
                         <iframe
                             className="w-full h-full"
-                            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
+                            src={resource.url}
                             title={resource.title}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
@@ -130,16 +130,9 @@ function ResourceCard({
 }) {
     const typeMeta = TYPE_META[resource.type] ?? TYPE_META.GUIDE;
     const catStyle = CAT_STYLES[resource.category] ?? CAT_STYLES.GENERAL;
-    const ytId = resource.type === "VIDEO" ? extractYouTubeId(resource.url) : null;
-    let thumbnail = ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : null;
-
-    if (!thumbnail) {
-        if (resource.type === "AUDIO") {
-            thumbnail = "https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=1000&auto=format&fit=crop";
-        } else if (resource.type === "GUIDE") {
-            thumbnail = "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1000&auto=format&fit=crop";
-        }
-    }
+    
+    // Zero-logic: Direct Mapping
+    const thumbnail = resource.thumbnailUrl;
 
     const isVideo = resource.type === "VIDEO";
     const isAudio = resource.type === "AUDIO";
@@ -147,6 +140,7 @@ function ResourceCard({
 
     return (
         <motion.div
+            key={resource.id}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05, duration: 0.3 }}
@@ -156,11 +150,14 @@ function ResourceCard({
             style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.8) inset" }}
         >
             {/* Thumbnail / Cover */}
-            <div className="h-48 relative overflow-hidden flex-shrink-0 rounded-t-3xl">
+            <div className="h-48 relative overflow-hidden flex-shrink-0 rounded-t-3xl bg-slate-100">
                 {thumbnail ? (
                     <img
                         src={thumbnail}
                         alt={resource.title}
+                        onError={(e) => {
+                            e.currentTarget.src = "https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=600";
+                        }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
