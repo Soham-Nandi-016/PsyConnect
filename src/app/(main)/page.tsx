@@ -229,13 +229,13 @@ export default function Home() {
       />
 
       {/* Hero Section */}
-      <section className="relative px-4 sm:px-6 lg:px-8 py-20 lg:py-36 overflow-hidden flex-1 flex flex-col justify-center">
+      <section className="relative px-4 sm:px-6 lg:px-8 py-20 lg:py-32 overflow-hidden flex-1 flex flex-col justify-center">
         {/* Soft decorative blobs */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[32rem] h-[32rem] bg-purple-200/30 rounded-full blur-[80px] animate-pulse pointer-events-none" />
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[36rem] h-[36rem] bg-emerald-200/20 rounded-full blur-[90px] pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[28rem] h-[28rem] bg-amber-100/20 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-8 items-center relative z-10 w-full">
+        <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1fr_56%] gap-12 lg:gap-16 items-center relative z-10 w-full">
           {/* Left Column: Welcome text & CTA */}
           <div className="flex flex-col gap-6 lg:pr-8">
             <motion.div

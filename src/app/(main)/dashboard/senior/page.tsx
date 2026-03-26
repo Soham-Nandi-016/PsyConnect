@@ -61,10 +61,68 @@ export default function SeniorDashboardPage() {
         });
     };
 
-    if (status === "loading" || isLoading) {
+    const Skeleton = ({ className }: { className?: string }) => (
+        <div className={`animate-pulse bg-gray-100 rounded-2xl ${className}`} />
+    );
+
+    if (status === "loading" || (isLoading && !data)) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full space-y-8">
+                {/* Header Skeleton */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="w-24 h-24 rounded-full" />
+                        <div className="space-y-2">
+                            <Skeleton className="w-48 h-8" />
+                            <Skeleton className="w-64 h-4" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats Row Skeleton */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                    {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="bg-white/80 rounded-3xl border border-white p-6 flex items-center gap-4">
+                            <Skeleton className="w-12 h-12 rounded-2xl flex-shrink-0" />
+                            <div className="flex-1 space-y-2">
+                                <Skeleton className="w-12 h-6" />
+                                <Skeleton className="w-20 h-3" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Main Grid Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Pending Requests Sidebar Skeleton */}
+                    <div className="lg:col-span-1 bg-white/60 rounded-[2.5rem] border border-white overflow-hidden p-6 space-y-6">
+                        <Skeleton className="w-32 h-6 mb-4" />
+                        {[1, 2].map((i) => (
+                            <div key={i} className="flex gap-4">
+                                <Skeleton className="w-12 h-12 rounded-2xl flex-shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="w-full h-4" />
+                                    <Skeleton className="w-3/4 h-3" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Active Mentees List Skeleton */}
+                    <div className="lg:col-span-2 bg-white/60 rounded-[2.5rem] border border-white overflow-hidden p-8 space-y-8">
+                        <Skeleton className="w-48 h-6 mb-4" />
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-center gap-6">
+                                <Skeleton className="w-14 h-14 rounded-2xl flex-shrink-0" />
+                                <div className="flex-1 space-y-3">
+                                    <Skeleton className="w-1/3 h-5" />
+                                    <Skeleton className="w-full h-2 rounded-full" />
+                                </div>
+                                <Skeleton className="w-24 h-10 rounded-xl" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }

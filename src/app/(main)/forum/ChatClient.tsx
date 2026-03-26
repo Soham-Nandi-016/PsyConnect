@@ -35,27 +35,6 @@ export default function ChatClient({ initialConversations, currentUserId, curren
         s.emit("user-online", currentUserId);
       });
 
-      s.on("new-message", (msg) => {
-        // Update the active conversation if it matches
-        setActiveConvo((prev: any) => {
-          if (prev?.id === msg.conversationId) {
-            // Check if message already exists to avoid dupes from re-renders/actions
-            if (prev.messages.some((m: any) => m.id === msg.id)) return prev;
-            return { ...prev, messages: [...prev.messages, msg] };
-          }
-          return prev;
-        });
-
-        // Update the sidebar list (move to top and update last message)
-        setConversations((prev) => {
-          const index = prev.findIndex(c => c.id === msg.conversationId);
-          if (index === -1) return prev;
-          const updated = [...prev];
-          updated[index] = { ...updated[index], messages: [msg], updatedAt: new Date() };
-          return updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-        });
-      });
-
       setSocket(s);
     };
 
@@ -66,16 +45,52 @@ export default function ChatClient({ initialConversations, currentUserId, curren
     };
   }, [currentUserId]);
 
+  // Handle new-message listener with conversationId context
+  useEffect(() => {
+    if (!socket || !selectedId) return;
+
+    const handleNewMessage = (msg: any) => {
+        console.log("Message Received via Socket", msg);
+        
+        // Update the active conversation if it matches the current view
+        if (msg.conversationId === selectedId) {
+            setActiveConvo((prev: any) => {
+                if (!prev || prev.id !== msg.conversationId) return prev;
+                // Avoid duplicates
+                if (prev.messages.some((m: any) => m.id === msg.id)) return prev;
+                return { ...prev, messages: [...prev.messages, msg] };
+            });
+        }
+
+        // Update the sidebar list
+        setConversations((prev) => {
+          const index = prev.findIndex(c => c.id === msg.conversationId);
+          if (index === -1) return prev;
+          const updated = [...prev];
+          updated[index] = { ...updated[index], messages: [msg], updatedAt: new Date() };
+          return updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        });
+    };
+
+    socket.on("new-message", handleNewMessage);
+    
+    // Ensure we are in the room for this conversation
+    socket.emit("join-conversation", selectedId);
+
+    return () => {
+      socket.off("new-message", handleNewMessage);
+    };
+  }, [socket, selectedId]);
+
   // Fetch full conversation details when selection changes
   useEffect(() => {
     const loadConvo = async () => {
       if (!selectedId) return;
       const data = await getConversation(selectedId);
       setActiveConvo(data);
-      if (socket) socket.emit("join-conversation", selectedId);
     };
     loadConvo();
-  }, [selectedId, socket]);
+  }, [selectedId]);
 
   const refreshAction = async () => {
     const updatedList = await getChatConversations();
