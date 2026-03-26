@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import Link from "next/link";
 
 const LAST_UPDATED = "March 4, 2026";

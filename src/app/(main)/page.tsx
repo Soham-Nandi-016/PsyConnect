@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { MessageSquare, BookOpen, ArrowRight, LayoutDashboard, Heart, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
