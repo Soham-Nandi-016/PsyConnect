@@ -11,6 +11,7 @@ import { signIn } from "next-auth/react";
 
 function SignInForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
 
     const [email, setEmail] = useState("");
@@ -171,7 +172,7 @@ function SignInForm() {
 }
 
 // useSearchParams requires Suspense in Next.js App Router
-export default function SignInPage() {
+export default function SignInPage({ searchParams }: any) {
     return (
         <Suspense fallback={<div className="w-full max-w-md h-96 glass rounded-3xl animate-pulse" />}>
             <SignInForm />

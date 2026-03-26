@@ -253,7 +253,7 @@ function SignUpForm() {
     );
 }
 
-export default function SignUpPage() {
+export default function SignUpPage({ searchParams }: any) {
     return (
         <Suspense fallback={<div className="w-full max-w-md glass p-10 rounded-3xl animate-pulse" />}>
             <SignUpForm />
