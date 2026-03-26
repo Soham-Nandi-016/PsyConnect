@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { auth } from "@/auth";
 import { getChatConversations } from "@/app/actions/forum";
 import ChatClient from "./ChatClient";

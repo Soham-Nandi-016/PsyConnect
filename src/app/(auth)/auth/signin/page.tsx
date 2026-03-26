@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -9,8 +11,7 @@ import { signIn } from "next-auth/react";
 
 function SignInForm() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+    const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard";
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { motion } from "framer-motion";
 import { ArrowRight, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle, Loader2, GraduationCap, HandHeart } from "lucide-react";
 import Link from "next/link";
@@ -23,7 +25,7 @@ function SignUpForm() {
 
     // Auto-fill role from URL param when page loads
     useEffect(() => {
-        const roleParam = searchParams.get("role")?.toUpperCase();
+        const roleParam = searchParams?.get("role")?.toUpperCase();
         if (roleParam === "COUNSELLOR" || roleParam === "SENIOR") {
             setRole("COUNSELLOR");
         } else {
