@@ -13,6 +13,8 @@ export default function SocketHandler(req: NextApiRequest, res: any) {
     
     res.socket.server.io = io;
 
+    const userSocketMap = new Map(); // socket.id -> userId
+
     io.on("connection", (socket) => {
       console.log("[Socket] Client connected:", socket.id);
 
@@ -21,15 +23,30 @@ export default function SocketHandler(req: NextApiRequest, res: any) {
         console.log(`[Socket] Joined conversation_${conversationId}`);
       });
 
+      socket.on("join-room", (room) => {
+        socket.join(room);
+        console.log(`[Socket] Joined room: ${room}`);
+      });
+
       socket.on("send-message", (msg) => {
         io.to(`conversation_${msg.conversationId}`).emit("new-message", msg);
       });
+
+      socket.on("new-booking", (data) => {
+        io.to(`mentor_${data.counsellorId}`).emit("new-booking", data);
+      });
       
       socket.on("user-online", (userId) => {
-         socket.broadcast.emit("status-update", { userId, status: "online" });
+        userSocketMap.set(socket.id, userId);
+        socket.broadcast.emit("status-update", { userId, status: "online" });
       });
 
       socket.on("disconnect", () => {
+        const userId = userSocketMap.get(socket.id);
+        if (userId) {
+          socket.broadcast.emit("status-update", { userId, status: "offline" });
+          userSocketMap.delete(socket.id);
+        }
         console.log("[Socket] Client disconnected:", socket.id);
       });
     });

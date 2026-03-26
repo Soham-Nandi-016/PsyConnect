@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { type CounsellorFull } from "@/app/actions/bookings";
 import { bookTherapist, getBookedSlots } from "@/app/actions/bookings";
+import { useSocket } from "@/components/Providers/SocketProvider";
 
 // ── Helpers ───────────────────────────────────────────────────
 const SPECIALTY_COLORS: Record<string, string> = {
@@ -131,12 +132,19 @@ function BookingEngine({ counsellor }: { counsellor: CounsellorFull }) {
         setBookedSlots(slots); setStatus("idle");
     };
 
+    const { socket } = useSocket();
+
     const handleConfirm = () => {
         if (!selectedSlot) return;
         setStatus("confirming");
         startTransition(async () => {
             const res = await bookTherapist(counsellor.id, selectedSlot, notes);
-            if (res.success) { setStatus("success"); }
+            if (res.success) { 
+                setStatus("success"); 
+                if (socket) {
+                    socket.emit("new-booking", { counsellorId: counsellor.id });
+                }
+            }
             else { setStatus("error"); setErrorMsg(res.error ?? "Something went wrong."); }
         });
     };
