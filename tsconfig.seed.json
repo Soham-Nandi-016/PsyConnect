@@ -7,6 +7,6 @@
         "outDir": "./dist-seed"
     },
     "include": [
-        "prisma/seed-counsellors.ts"
+        "prisma/seed.ts"
     ]
 }

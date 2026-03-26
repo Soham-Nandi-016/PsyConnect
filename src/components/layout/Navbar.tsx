@@ -6,13 +6,18 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
+import { AuthModal } from "@/components/auth/AuthModal";
 
 export function Navbar() {
     const pathname = usePathname();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { data: session } = useSession();
+    
+    // Configurable Auth Modal State
+    const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, title?: string, description?: React.ReactNode }>({
+        isOpen: false,
+    });
 
-    // Derive role-correct dashboard URL from JWT session
     const role = (session?.user as { role?: string } | undefined)?.role;
     const dashboardHref =
         role === "COUNSELLOR" || role === "ADMIN"
@@ -20,14 +25,45 @@ export function Navbar() {
             : "/dashboard/student";
 
     const links = [
-        { name: "Home", href: "/" },
-        { name: "Peer Forum", href: "/forum", icon: MessageSquare },
-        { name: "Resource Hub", href: "/resources", icon: BookOpen },
-        { name: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
+        { name: "Home", href: "/", isProtected: false },
+        { name: "Peer Forum", href: "/forum", icon: MessageSquare, isProtected: true },
+        { name: "Resource Hub", href: "/resources", icon: BookOpen, isProtected: true },
+        { name: "Dashboard", href: dashboardHref, icon: LayoutDashboard, isProtected: true },
     ];
+
+    const closeAuthModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
+
+    const handleNavClick = (e: React.MouseEvent, href: string, isProtected: boolean) => {
+        if (isProtected && !session) {
+            e.preventDefault();
+            setModalConfig({
+                isOpen: true,
+                title: "Login Required 🔒",
+                description: (
+                    <>
+                        To protect our students&apos; privacy, a verified login is required for this section.{" "}
+                        <Link href="/community" onClick={closeAuthModal} className="text-[#6b8f66] font-semibold hover:underline">
+                            Visit our Join Community page
+                        </Link>{" "}
+                        to learn more about how we keep you safe.
+                    </>
+                )
+            });
+            setIsMobileMenuOpen(false);
+        } else {
+            setIsMobileMenuOpen(false);
+        }
+    };
 
     return (
         <>
+            <AuthModal 
+               isOpen={modalConfig.isOpen} 
+               onClose={closeAuthModal} 
+               title={modalConfig.title}
+               description={modalConfig.description}
+            />
+
             <nav className="w-full bg-white/60 backdrop-blur-xl sticky top-0 z-[100] border-b border-white/30 shadow-[0_4px_30px_rgba(0,0,0,0.04)]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2.5 group">
@@ -49,6 +85,7 @@ export function Navbar() {
                             <Link
                                 key={link.name}
                                 href={link.href}
+                                onClick={(e) => handleNavClick(e, link.href, link.isProtected!)}
                                 className={`transition-all flex items-center gap-1.5 hover:text-primary relative px-1 py-0.5 ${pathname === link.href ? "text-primary font-semibold" : ""
                                     }`}
                             >
@@ -64,18 +101,21 @@ export function Navbar() {
                     </div>
 
                     <div className="hidden md:flex items-center gap-3">
-                        <Link href="/auth/signin">
-                            <button className="text-sm font-semibold text-foreground/70 hover:text-primary transition-colors px-3 py-2 rounded-full hover:bg-primary/5">
-                                Sign In
-                            </button>
-                        </Link>
-                        <Link href="/community">
+                        {!session ? (
+                            <Link href="/auth/signin">
+                                <button className="text-sm font-semibold text-foreground/70 hover:text-primary transition-colors px-3 py-2 rounded-full hover:bg-primary/5">
+                                    Sign In
+                                </button>
+                            </Link>
+                        ) : null}
+                        {/* ONLY links strictly to community landing page without triggering AuthGuard */}
+                        <Link href={session ? dashboardHref : "/community"}>
                             <motion.button
                                 whileHover={{ scale: 1.04, y: -1 }}
                                 whileTap={{ scale: 0.97 }}
                                 className="bg-gradient-to-r from-primary to-[#6b8f66] text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-[0_4px_14px_rgba(138,154,134,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] hover:shadow-[0_6px_20px_rgba(138,154,134,0.45)] flex items-center gap-2"
                             >
-                                Join Community <ArrowRight className="w-4 h-4" />
+                                {session ? "My Dashboard" : "Join Community"} <ArrowRight className="w-4 h-4" />
                             </motion.button>
                         </Link>
                     </div>
@@ -110,7 +150,7 @@ export function Navbar() {
                                     <Link
                                         key={link.name}
                                         href={link.href}
-                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        onClick={(e) => handleNavClick(e, link.href, link.isProtected!)}
                                         className={`flex items-center gap-3 text-base font-medium p-3 rounded-2xl transition-all ${pathname === link.href
                                                 ? "text-primary bg-primary/10 font-semibold"
                                                 : "text-foreground/70 hover:text-primary hover:bg-primary/5"
@@ -122,14 +162,18 @@ export function Navbar() {
                                 );
                             })}
                             <div className="border-t border-white/60 mt-3 pt-4 flex flex-col gap-3">
-                                <Link href="/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <button className="w-full bg-white/70 text-foreground py-3 rounded-2xl font-semibold border border-white/50 hover:bg-white transition-all shadow-sm">
-                                        Sign In
-                                    </button>
-                                </Link>
-                                <Link href="/community" onClick={() => setIsMobileMenuOpen(false)}>
-                                    <button className="w-full bg-gradient-to-r from-primary to-[#6b8f66] text-white py-3 rounded-2xl font-bold shadow-[0_4px_14px_rgba(138,154,134,0.35)]">
-                                        Join Community
+                                {!session ? (
+                                    <Link href="/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
+                                        <button className="w-full bg-white/70 text-foreground py-3 rounded-2xl font-semibold border border-white/50 hover:bg-white transition-all shadow-sm">
+                                            Sign In
+                                        </button>
+                                    </Link>
+                                ) : null}
+                                <Link href={session ? dashboardHref : "/community"} onClick={() => setIsMobileMenuOpen(false)}>
+                                    <button 
+                                        className="w-full bg-gradient-to-r from-primary to-[#6b8f66] text-white py-3 rounded-2xl font-bold shadow-[0_4px_14px_rgba(138,154,134,0.35)]"
+                                    >
+                                        {session ? "My Dashboard" : "Join Community"}
                                     </button>
                                 </Link>
                             </div>

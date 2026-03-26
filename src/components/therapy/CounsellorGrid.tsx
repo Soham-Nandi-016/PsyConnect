@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Search, Star, ChevronRight, Filter, GraduationCap, Clock } from "lucide-react";
+import { Search, Star, ChevronRight, Filter, GraduationCap, Clock, MessageSquareText } from "lucide-react";
 import { type CounsellorSummary, type Specialty } from "@/app/actions/bookings";
+import { createConversation } from "@/app/actions/forum";
+import { useRouter } from "next/navigation";
 
 // ── Specialty config ──────────────────────────────────────────
 const ALL_SPECIALTIES: { value: Specialty | "ALL"; label: string; color: string }[] = [
@@ -43,6 +45,19 @@ function Avatar({ name, size = 56 }: { name: string; size?: number }) {
 // ── Counsellor Card ───────────────────────────────────────────
 function CounsellorCard({ c, index }: { c: CounsellorSummary; index: number }) {
     const specConfig = ALL_SPECIALTIES.find(s => s.value === c.specialty);
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+
+    const handleMessage = () => {
+        startTransition(async () => {
+            const res = await createConversation(c.id);
+            if (res.convoId) {
+                router.push("/forum");
+            } else if (res.error) {
+                alert(res.error);
+            }
+        });
+    };
 
     return (
         <motion.div
@@ -89,15 +104,24 @@ function CounsellorCard({ c, index }: { c: CounsellorSummary; index: number }) {
                     </div>
                 )}
 
-                <div className="mt-auto">
-                    <Link href={`/therapy/${c.id}`}>
+                <div className="mt-auto space-y-2">
+                    <Link href={`/therapy/${c.id}`} className="block">
                         <motion.button
                             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-[#6b8f66] text-white text-sm font-bold py-3.5 rounded-full hover:opacity-90 transition-all shadow-[0_4px_14px_rgba(138,154,134,0.35)]"
+                            className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-700 text-sm font-bold py-3 rounded-full hover:bg-slate-200 transition-all"
                         >
                             View Profile <ChevronRight className="w-4 h-4" />
                         </motion.button>
                     </Link>
+                    
+                    <motion.button
+                        disabled={isPending}
+                        onClick={handleMessage}
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-[#6b8f66] text-white text-sm font-bold py-3.5 rounded-full hover:opacity-90 transition-all shadow-[0_4px_14px_rgba(138,154,134,0.35)] disabled:opacity-50"
+                    >
+                        {isPending ? "Connecting..." : "Message Mentor"} <MessageSquareText className="w-4 h-4" />
+                    </motion.button>
                 </div>
             </div>
         </motion.div>

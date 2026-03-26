@@ -91,17 +91,18 @@ model User {
   role          Role      @default(STUDENT)
   createdAt     DateTime  @default(now())
 
+  counsellorProfile  Counsellor? @relation("UserToCounsellor")
+
   accounts           Account[]
   sessions           Session[]
   forumTopics        ForumTopic[]
   moodLogs           MoodLog[]
   studentBookings    Booking[]      @relation("StudentBookings")
   counsellorBookings Booking[]      @relation("CounsellorBookings")
-  sentMessages       Message[]      @relation("SentMessages")
-  receivedMessages   Message[]      @relation("ReceivedMessages")
-  conversationsAsA   Conversation[] @relation("ConversationsAsA")
-  conversationsAsB   Conversation[] @relation("ConversationsAsB")
   therapyBookings    TherapyBooking[] @relation("TherapyBookingsAsStudent")
+
+  conversations      Conversation[] @relation("ConversationsAsStudent")
+  sentMessages       Message[]      @relation("SentMessagesAsStudent")
 }
 
 model Resource {
@@ -156,32 +157,39 @@ model MoodLog {
 // Peer Forum Messaging models
 // ============================================================
 
+enum ConversationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 model Conversation {
-  id             String   @id @default(cuid())
-  participantAId String
-  participantBId String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id             String             @id @default(cuid())
+  studentId      String
+  counsellorId   String
+  status         ConversationStatus @default(PENDING)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
-  participantA User      @relation("ConversationsAsA", fields: [participantAId], references: [id], onDelete: Cascade)
-  participantB User      @relation("ConversationsAsB", fields: [participantBId], references: [id], onDelete: Cascade)
-  messages     Message[]
+  student        User       @relation("ConversationsAsStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  counsellor     Counsellor @relation("ConversationsAsCounsellor", fields: [counsellorId], references: [id], onDelete: Cascade)
+  messages       Message[]
 
-  @@unique([participantAId, participantBId])
+  @@unique([studentId, counsellorId])
 }
 
 model Message {
-  id             String   @id @default(cuid())
-  conversationId String
-  senderId       String
-  receiverId     String
-  content        String   @db.Text
-  isRead         Boolean  @default(false)
-  createdAt      DateTime @default(now())
+  id                 String   @id @default(cuid())
+  conversationId     String
+  senderStudentId    String?
+  senderCounsellorId String?
+  content            String   @db.Text
+  isRead             Boolean  @default(false)
+  createdAt          DateTime @default(now())
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver     User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderStudent      User?        @relation("SentMessagesAsStudent", fields: [senderStudentId], references: [id], onDelete: Cascade)
+  senderCounsellor   Counsellor?  @relation("SentMessagesAsCounsellor", fields: [senderCounsellorId], references: [id], onDelete: Cascade)
 }
 
 // ============================================================
@@ -211,9 +219,14 @@ model Counsellor {
   yearsExp       Int       @default(1)
   createdAt      DateTime  @default(now())
 
-  availability TherapistAvailability[]
-  testimonials Testimonial[]
-  bookings     TherapyBooking[]
+  userId         String?   @unique
+  user           User?     @relation("UserToCounsellor", fields: [userId], references: [id])
+
+  availability  TherapistAvailability[]
+  testimonials  Testimonial[]
+  bookings      TherapyBooking[]
+  conversations Conversation[] @relation("ConversationsAsCounsellor")
+  sentMessages  Message[]      @relation("SentMessagesAsCounsellor")
 }
 
 model TherapistAvailability {
