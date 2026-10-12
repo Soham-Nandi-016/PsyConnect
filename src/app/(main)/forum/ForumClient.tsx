@@ -55,7 +55,7 @@ export function ForumClient({
             // Find and select the newly created conversation
             const updated = await getConversations();
             setConversations(updated);
-            const conv = updated.find((c) => c.id === result.conversationId);
+            const conv = updated.find((c: ConversationWithPeer) => c.id === result.conversationId);
             if (conv) handleSelectConversation(conv);
         }
     };

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, CheckCircle2, XCircle, Info, Shrub } from "lucide-react";
 import { acceptRequest, denyRequest, sendMessage } from "@/app/actions/forum";
-import { revalidatePath } from "next/cache";
+
 
 interface ChatWindowProps {
   conversation: any;

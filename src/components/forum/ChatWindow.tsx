@@ -80,7 +80,7 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
             id: `optimistic-${Date.now()}`,
             content,
             senderId: currentUserId,
-            receiverId: conversation.peer.id,
+            receiverId: conversation.peer?.id ?? "",
             createdAt: new Date(),
             isRead: false,
         };
@@ -90,13 +90,20 @@ export function ChatWindow({ conversation, currentUserId, onBack }: ChatWindowPr
         inputRef.current?.focus();
 
         startTransition(async () => {
-            const result = await sendMessage(conversation.id, conversation.peer.id, content);
+            const result = await sendMessage(conversation.id, content);
             if (result.success && result.message) {
+                const serverMsg = result.message as any;
+                const confirmed: MessageData = {
+                    id: serverMsg.id,
+                    content: serverMsg.content,
+                    senderId: serverMsg.senderStudentId ?? serverMsg.senderCounsellorId ?? currentUserId,
+                    receiverId: optimisticMsg.receiverId,
+                    createdAt: new Date(serverMsg.createdAt),
+                    isRead: serverMsg.isRead ?? false,
+                };
                 setMessages((prev) =>
                     prev.map((m) =>
-                        m.id === optimisticMsg.id
-                            ? { ...result.message!, createdAt: new Date(result.message!.createdAt) }
-                            : m
+                        m.id === optimisticMsg.id ? confirmed : m
                     )
                 );
             } else {

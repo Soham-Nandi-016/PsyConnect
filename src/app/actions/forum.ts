@@ -5,6 +5,37 @@ import { auth } from "@/auth";
 import { ConversationStatus, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
+// ── Exported types consumed by forum/chat UI components ───────
+
+export interface MessageData {
+  id: string;
+  content: string;
+  senderId: string;          // senderStudentId or senderCounsellorId (normalised)
+  receiverId: string;
+  createdAt: Date;
+  isRead: boolean;
+}
+
+export interface ConversationWithPeer {
+  id: string;
+  status: ConversationStatus;
+  updatedAt: Date;
+  peer: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+    avatarUrl?: string | null;
+    image?: string | null;
+  };
+  lastMessage: {
+    content: string;
+    senderId: string;
+    createdAt: Date;
+  } | null;
+}
+
+
 /**
  * Get all conversations for the current user.
  * Supports both students and counsellors.
@@ -186,4 +217,122 @@ export async function denyRequest(convoId: string) {
 
   revalidatePath("/forum");
   return { success: true };
+}
+
+// ── Alias: used by ForumClient.tsx ────────────────────────────
+
+/**
+ * Alias for getChatConversations, mapped to the ConversationWithPeer shape.
+ * The UI components depend on a normalised `peer` object rather than
+ * the raw counsellor/student split that getChatConversations returns.
+ */
+export async function getConversations(): Promise<ConversationWithPeer[]> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+
+  const role = (session.user as any).role as Role;
+
+  if (role === Role.COUNSELLOR) {
+    const rows = await db.conversation.findMany({
+      where: { counsellor: { userId: session.user.id } },
+      include: {
+        student: { select: { id: true, name: true, email: true, image: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      updatedAt: r.updatedAt,
+      peer: {
+        id: r.student.id,
+        name: r.student.name,
+        email: r.student.email,
+        role: "STUDENT",
+        image: r.student.image,
+      },
+      lastMessage: r.messages[0]
+        ? {
+            content: r.messages[0].content,
+            senderId: r.messages[0].senderStudentId ?? r.messages[0].senderCounsellorId ?? "",
+            createdAt: r.messages[0].createdAt,
+          }
+        : null,
+    }));
+  } else {
+    const rows = await db.conversation.findMany({
+      where: { studentId: session.user.id },
+      include: {
+        counsellor: { select: { id: true, name: true, avatarUrl: true, specialty: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      updatedAt: r.updatedAt,
+      peer: {
+        id: r.counsellor.id,
+        name: r.counsellor.name,
+        email: "",
+        role: "COUNSELLOR",
+        avatarUrl: r.counsellor.avatarUrl,
+      },
+      lastMessage: r.messages[0]
+        ? {
+            content: r.messages[0].content,
+            senderId: r.messages[0].senderStudentId ?? r.messages[0].senderCounsellorId ?? "",
+            createdAt: r.messages[0].createdAt,
+          }
+        : null,
+    }));
+  }
+}
+
+/**
+ * Create or fetch a conversation and return {success, conversationId}.
+ * Used by ForumClient's "new chat" flow.
+ */
+export async function getOrCreateConversation(
+  counsellorId: string
+): Promise<{ success: boolean; conversationId?: string; error?: string }> {
+  const result = await createConversation(counsellorId);
+  if ("error" in result) return { success: false, error: result.error };
+  return { success: true, conversationId: result.convoId };
+}
+
+/**
+ * Fetch all messages for a conversation, normalised into MessageData shape.
+ */
+export async function getMessages(conversationId: string): Promise<MessageData[]> {
+  const session = await auth();
+  if (!session?.user?.id) return [];
+
+  const convo = await db.conversation.findUnique({
+    where: { id: conversationId },
+    include: {
+      counsellor: { select: { userId: true } },
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  if (!convo) return [];
+
+  return convo.messages.map((m) => {
+    const senderId = m.senderStudentId ?? m.senderCounsellorId ?? "";
+    const receiverId =
+      m.senderStudentId
+        ? (convo.counsellor.userId ?? convo.counsellorId)
+        : convo.studentId;
+    return {
+      id: m.id,
+      content: m.content,
+      senderId,
+      receiverId,
+      createdAt: m.createdAt,
+      isRead: m.isRead,
+    };
+  });
 }
