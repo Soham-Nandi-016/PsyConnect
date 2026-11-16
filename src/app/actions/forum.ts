@@ -41,29 +41,34 @@ export interface ConversationWithPeer {
  * Supports both students and counsellors.
  */
 export async function getChatConversations() {
-  const session = await auth();
-  if (!session?.user?.id) return [];
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return [];
 
-  const role = (session.user as any).role as Role;
+    const role = (session.user as { role?: string })?.role as Role;
 
-  if (role === Role.COUNSELLOR) {
-    return await db.conversation.findMany({
-      where: { counsellor: { userId: session.user.id } },
-      include: {
-        student: { select: { id: true, name: true, image: true, email: true } },
-        messages: { orderBy: { createdAt: "desc" }, take: 1 },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
-  } else {
-    return await db.conversation.findMany({
-      where: { studentId: session.user.id },
-      include: {
-        counsellor: { select: { id: true, name: true, avatarUrl: true, specialty: true } },
-        messages: { orderBy: { createdAt: "desc" }, take: 1 },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+    if (role === Role.COUNSELLOR) {
+      return await db.conversation.findMany({
+        where: { counsellor: { userId: session.user.id } },
+        include: {
+          student: { select: { id: true, name: true, image: true, email: true } },
+          messages: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    } else {
+      return await db.conversation.findMany({
+        where: { studentId: session.user.id },
+        include: {
+          counsellor: { select: { id: true, name: true, avatarUrl: true, specialty: true } },
+          messages: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
+  } catch (err) {
+    console.error("[forum] Error fetching chat conversations:", err);
+    return [];
   }
 }
 
@@ -71,17 +76,22 @@ export async function getChatConversations() {
  * Get full details of a single conversation.
  */
 export async function getConversation(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return null;
 
-  return await db.conversation.findUnique({
-    where: { id },
-    include: {
-      student: { select: { id: true, name: true, image: true } },
-      counsellor: { select: { id: true, name: true, avatarUrl: true, userId: true } },
-      messages: { orderBy: { createdAt: "asc" } },
-    },
-  });
+    return await db.conversation.findUnique({
+      where: { id },
+      include: {
+        student: { select: { id: true, name: true, image: true } },
+        counsellor: { select: { id: true, name: true, avatarUrl: true, userId: true } },
+        messages: { orderBy: { createdAt: "asc" } },
+      },
+    });
+  } catch (err) {
+    console.error("[forum] Error fetching conversation:", err);
+    return null;
+  }
 }
 
 /**
@@ -93,7 +103,7 @@ export async function createConversation(counsellorId: string) {
   if (!session?.user?.id) return { error: "Not authenticated" };
 
   // In this system, only students can initiate chats with counsellors
-  if ((session.user as any).role !== Role.STUDENT) {
+  if ((session.user as { role?: string })?.role !== Role.STUDENT) {
     return { error: "Only students can initiate mentorship requests." };
   }
 
@@ -116,7 +126,7 @@ export async function createConversation(counsellorId: string) {
     revalidatePath("/forum");
     return { convoId: convo.id };
   } catch (err) {
-    console.error("Error creating conversation:", err);
+    console.error("[forum] Error creating conversation:", err);
     return { error: "Failed to create conversation." };
   }
 }
@@ -134,89 +144,110 @@ export async function startChat(counsellorId: string) {
  * Send a message within a conversation.
  */
 export async function sendMessage(convoId: string, content: string) {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
 
-  const convo = await db.conversation.findUnique({
-    where: { id: convoId },
-    include: { counsellor: true },
-  });
+    const convo = await db.conversation.findUnique({
+      where: { id: convoId },
+      include: { counsellor: true },
+    });
 
-  if (!convo) return { error: "Conversation not found" };
+    if (!convo) return { error: "Conversation not found" };
 
-  const isStudent = convo.studentId === session.user.id;
-  const isCounsellor = convo.counsellor.userId === session.user.id;
+    const isStudent = convo.studentId === session.user.id;
+    const isCounsellor = convo.counsellor.userId === session.user.id;
 
-  if (!isStudent && !isCounsellor) return { error: "Unauthorized" };
+    if (!isStudent && !isCounsellor) return { error: "Unauthorized" };
 
-  const data: any = {
-    conversationId: convoId,
-    content,
-    isRead: false
-  };
+    const data: {
+      conversationId: string;
+      content: string;
+      isRead: boolean;
+      senderStudentId?: string;
+      senderCounsellorId?: string;
+    } = {
+      conversationId: convoId,
+      content,
+      isRead: false
+    };
 
-  if (isStudent) data.senderStudentId = session.user.id;
-  else data.senderCounsellorId = convo.counsellorId;
+    if (isStudent) data.senderStudentId = session.user.id;
+    else data.senderCounsellorId = convo.counsellorId;
 
-  const msg = await db.message.create({ data });
+    const msg = await db.message.create({ data });
 
-  await db.conversation.update({
-    where: { id: convoId },
-    data: { updatedAt: new Date() },
-  });
+    await db.conversation.update({
+      where: { id: convoId },
+      data: { updatedAt: new Date() },
+    });
 
-  revalidatePath("/forum");
-  return { success: true, message: msg };
+    revalidatePath("/forum");
+    return { success: true, message: msg };
+  } catch (err) {
+    console.error("[forum] Error sending message:", err);
+    return { error: "Failed to send message." };
+  }
 }
 
 /**
  * Accept a pending chat request (Counsellor only).
  */
 export async function acceptRequest(convoId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
 
-  const convo = await db.conversation.findUnique({
-    where: { id: convoId },
-    include: { counsellor: true },
-  });
+    const convo = await db.conversation.findUnique({
+      where: { id: convoId },
+      include: { counsellor: true },
+    });
 
-  if (!convo || convo.counsellor.userId !== session.user.id) {
-    return { error: "Unauthorized" };
+    if (!convo || convo.counsellor.userId !== session.user.id) {
+      return { error: "Unauthorized" };
+    }
+
+    await db.conversation.update({
+      where: { id: convoId },
+      data: { status: ConversationStatus.ACCEPTED },
+    });
+
+    revalidatePath("/forum");
+    return { success: true };
+  } catch (err) {
+    console.error("[forum] Error accepting request:", err);
+    return { error: "Failed to accept request." };
   }
-
-  await db.conversation.update({
-    where: { id: convoId },
-    data: { status: ConversationStatus.ACCEPTED },
-  });
-
-  revalidatePath("/forum");
-  return { success: true };
 }
 
 /**
  * Decline a pending chat request (Counsellor only).
  */
 export async function denyRequest(convoId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "Not authenticated" };
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return { error: "Not authenticated" };
 
-  const convo = await db.conversation.findUnique({
-    where: { id: convoId },
-    include: { counsellor: true },
-  });
+    const convo = await db.conversation.findUnique({
+      where: { id: convoId },
+      include: { counsellor: true },
+    });
 
-  if (!convo || convo.counsellor.userId !== session.user.id) {
-    return { error: "Unauthorized" };
+    if (!convo || convo.counsellor.userId !== session.user.id) {
+      return { error: "Unauthorized" };
+    }
+
+    await db.conversation.update({
+      where: { id: convoId },
+      data: { status: ConversationStatus.DECLINED },
+    });
+
+    revalidatePath("/forum");
+    return { success: true };
+  } catch (err) {
+    console.error("[forum] Error denying request:", err);
+    return { error: "Failed to decline request." };
   }
-
-  await db.conversation.update({
-    where: { id: convoId },
-    data: { status: ConversationStatus.DECLINED },
-  });
-
-  revalidatePath("/forum");
-  return { success: true };
 }
 
 // ── Alias: used by ForumClient.tsx ────────────────────────────
@@ -227,67 +258,72 @@ export async function denyRequest(convoId: string) {
  * the raw counsellor/student split that getChatConversations returns.
  */
 export async function getConversations(): Promise<ConversationWithPeer[]> {
-  const session = await auth();
-  if (!session?.user?.id) return [];
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return [];
 
-  const role = (session.user as any).role as Role;
+    const role = (session.user as { role?: string })?.role as Role;
 
-  if (role === Role.COUNSELLOR) {
-    const rows = await db.conversation.findMany({
-      where: { counsellor: { userId: session.user.id } },
-      include: {
-        student: { select: { id: true, name: true, email: true, image: true } },
-        messages: { orderBy: { createdAt: "desc" }, take: 1 },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
-    return rows.map((r) => ({
-      id: r.id,
-      status: r.status,
-      updatedAt: r.updatedAt,
-      peer: {
-        id: r.student.id,
-        name: r.student.name,
-        email: r.student.email,
-        role: "STUDENT",
-        image: r.student.image,
-      },
-      lastMessage: r.messages[0]
-        ? {
-            content: r.messages[0].content,
-            senderId: r.messages[0].senderStudentId ?? r.messages[0].senderCounsellorId ?? "",
-            createdAt: r.messages[0].createdAt,
-          }
-        : null,
-    }));
-  } else {
-    const rows = await db.conversation.findMany({
-      where: { studentId: session.user.id },
-      include: {
-        counsellor: { select: { id: true, name: true, avatarUrl: true, specialty: true } },
-        messages: { orderBy: { createdAt: "desc" }, take: 1 },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
-    return rows.map((r) => ({
-      id: r.id,
-      status: r.status,
-      updatedAt: r.updatedAt,
-      peer: {
-        id: r.counsellor.id,
-        name: r.counsellor.name,
-        email: "",
-        role: "COUNSELLOR",
-        avatarUrl: r.counsellor.avatarUrl,
-      },
-      lastMessage: r.messages[0]
-        ? {
-            content: r.messages[0].content,
-            senderId: r.messages[0].senderStudentId ?? r.messages[0].senderCounsellorId ?? "",
-            createdAt: r.messages[0].createdAt,
-          }
-        : null,
-    }));
+    if (role === Role.COUNSELLOR) {
+      const rows = await db.conversation.findMany({
+        where: { counsellor: { userId: session.user.id } },
+        include: {
+          student: { select: { id: true, name: true, email: true, image: true } },
+          messages: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      return rows.map((r) => ({
+        id: r.id,
+        status: r.status,
+        updatedAt: r.updatedAt,
+        peer: {
+          id: r.student.id,
+          name: r.student.name,
+          email: r.student.email,
+          role: "STUDENT",
+          image: r.student.image,
+        },
+        lastMessage: r.messages[0]
+          ? {
+              content: r.messages[0].content,
+              senderId: r.messages[0].senderStudentId ?? r.messages[0].senderCounsellorId ?? "",
+              createdAt: r.messages[0].createdAt,
+            }
+          : null,
+      }));
+    } else {
+      const rows = await db.conversation.findMany({
+        where: { studentId: session.user.id },
+        include: {
+          counsellor: { select: { id: true, name: true, avatarUrl: true, specialty: true } },
+          messages: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      return rows.map((r) => ({
+        id: r.id,
+        status: r.status,
+        updatedAt: r.updatedAt,
+        peer: {
+          id: r.counsellor.id,
+          name: r.counsellor.name,
+          email: "",
+          role: "COUNSELLOR",
+          avatarUrl: r.counsellor.avatarUrl,
+        },
+        lastMessage: r.messages[0]
+          ? {
+              content: r.messages[0].content,
+              senderId: r.messages[0].senderStudentId ?? r.messages[0].senderCounsellorId ?? "",
+              createdAt: r.messages[0].createdAt,
+            }
+          : null,
+      }));
+    }
+  } catch (err) {
+    console.error("[forum] Error getting conversations:", err);
+    return [];
   }
 }
 
@@ -307,32 +343,37 @@ export async function getOrCreateConversation(
  * Fetch all messages for a conversation, normalised into MessageData shape.
  */
 export async function getMessages(conversationId: string): Promise<MessageData[]> {
-  const session = await auth();
-  if (!session?.user?.id) return [];
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return [];
 
-  const convo = await db.conversation.findUnique({
-    where: { id: conversationId },
-    include: {
-      counsellor: { select: { userId: true } },
-      messages: { orderBy: { createdAt: "asc" } },
-    },
-  });
+    const convo = await db.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        counsellor: { select: { userId: true } },
+        messages: { orderBy: { createdAt: "asc" } },
+      },
+    });
 
-  if (!convo) return [];
+    if (!convo) return [];
 
-  return convo.messages.map((m) => {
-    const senderId = m.senderStudentId ?? m.senderCounsellorId ?? "";
-    const receiverId =
-      m.senderStudentId
-        ? (convo.counsellor.userId ?? convo.counsellorId)
-        : convo.studentId;
-    return {
-      id: m.id,
-      content: m.content,
-      senderId,
-      receiverId,
-      createdAt: m.createdAt,
-      isRead: m.isRead,
-    };
-  });
+    return convo.messages.map((m) => {
+      const senderId = m.senderStudentId ?? m.senderCounsellorId ?? "";
+      const receiverId =
+        m.senderStudentId
+          ? (convo.counsellor?.userId ?? convo.counsellorId)
+          : convo.studentId;
+      return {
+        id: m.id,
+        content: m.content,
+        senderId,
+        receiverId,
+        createdAt: m.createdAt,
+        isRead: m.isRead,
+      };
+    });
+  } catch (err) {
+    console.error("[forum] Error getting messages:", err);
+    return [];
+  }
 }

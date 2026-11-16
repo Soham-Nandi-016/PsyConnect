@@ -53,54 +53,64 @@ export async function getCounsellors(
     specialty?: Specialty | "ALL",
     query?: string,
 ): Promise<CounsellorSummary[]> {
-    const rows = await db.counsellor.findMany({
-        where: {
-            ...(specialty && specialty !== "ALL" ? { specialty } : {}),
-            ...(query
-                ? {
-                    OR: [
-                        { name: { contains: query } },
-                        { bio: { contains: query } },
-                    ],
-                }
-                : {}),
-        },
-        orderBy: { rating: "desc" },
-        include: { testimonials: { take: 1, orderBy: { rating: "desc" } } },
-    });
-    return rows.map(toSummary);
+    try {
+        const rows = await db.counsellor.findMany({
+            where: {
+                ...(specialty && specialty !== "ALL" ? { specialty } : {}),
+                ...(query
+                    ? {
+                        OR: [
+                            { name: { contains: query, mode: "insensitive" } },
+                            { bio: { contains: query, mode: "insensitive" } },
+                        ],
+                    }
+                    : {}),
+            },
+            orderBy: { rating: "desc" },
+            include: { testimonials: { take: 1, orderBy: { rating: "desc" } } },
+        });
+        return rows.map(toSummary);
+    } catch (err) {
+        console.error("[bookings] Error fetching counsellors:", err);
+        return [];
+    }
 }
 
 /** Fetch a single counsellor's full profile */
 export async function getCounsellorById(id: string): Promise<CounsellorFull | null> {
-    const c = await db.counsellor.findUnique({
-        where: { id },
-        include: {
-            availability: true,
-            testimonials: { orderBy: { rating: "desc" } },
-        },
-    });
-    if (!c) return null;
+    try {
+        const c = await db.counsellor.findUnique({
+            where: { id },
+            include: {
+                availability: true,
+                testimonials: { orderBy: { rating: "desc" } },
+            },
+        });
+        if (!c) return null;
 
-    let qualifications: string[] = [];
-    try { qualifications = JSON.parse(c.qualifications) as string[]; } catch { qualifications = []; }
+        let qualifications: string[] = [];
+        try { qualifications = JSON.parse(c.qualifications) as string[]; } catch { qualifications = []; }
 
-    return {
-        ...toSummary({ ...c, testimonials: c.testimonials }),
-        qualifications,
-        philosophy: c.philosophy,
-        videoUrl: c.videoUrl,
-        availability: c.availability.map(a => ({
-            dayOfWeek: a.dayOfWeek,
-            startHour: a.startHour,
-            endHour: a.endHour,
-        })),
-        testimonials: c.testimonials.map(t => ({
-            studentName: t.studentName,
-            text: t.text,
-            rating: t.rating,
-        })),
-    };
+        return {
+            ...toSummary({ ...c, testimonials: c.testimonials }),
+            qualifications,
+            philosophy: c.philosophy,
+            videoUrl: c.videoUrl,
+            availability: c.availability.map(a => ({
+                dayOfWeek: a.dayOfWeek,
+                startHour: a.startHour,
+                endHour: a.endHour,
+            })),
+            testimonials: c.testimonials.map(t => ({
+                studentName: t.studentName,
+                text: t.text,
+                rating: t.rating,
+            })),
+        };
+    } catch (err) {
+        console.error("[bookings] Error fetching counsellor by id:", err);
+        return null;
+    }
 }
 
 /** Get already-booked slots for a counsellor on a specific date */
@@ -108,18 +118,23 @@ export async function getBookedSlots(
     counsellorId: string,
     date: Date,
 ): Promise<Date[]> {
-    const start = new Date(date); start.setHours(0, 0, 0, 0);
-    const end = new Date(date); end.setHours(23, 59, 59, 999);
+    try {
+        const start = new Date(date); start.setHours(0, 0, 0, 0);
+        const end = new Date(date); end.setHours(23, 59, 59, 999);
 
-    const bookings = await db.therapyBooking.findMany({
-        where: {
-            counsellorId,
-            appointmentTime: { gte: start, lte: end },
-            status: { not: BookingStatus.CANCELLED },
-        },
-        select: { appointmentTime: true },
-    });
-    return bookings.map(b => b.appointmentTime);
+        const bookings = await db.therapyBooking.findMany({
+            where: {
+                counsellorId,
+                appointmentTime: { gte: start, lte: end },
+                status: { not: BookingStatus.CANCELLED },
+            },
+            select: { appointmentTime: true },
+        });
+        return bookings.map(b => b.appointmentTime);
+    } catch (err) {
+        console.error("[bookings] Error fetching booked slots:", err);
+        return [];
+    }
 }
 
 /** Create a therapy booking */
@@ -131,29 +146,34 @@ export async function bookTherapist(
     const session = await auth();
     if (!session?.user?.id) return { success: false, error: "Please sign in to book a session." };
 
-    // Check slot is not already taken
-    const conflict = await db.therapyBooking.findFirst({
-        where: {
-            counsellorId,
-            appointmentTime,
-            status: { not: BookingStatus.CANCELLED },
-        },
-    });
-    if (conflict) return { success: false, error: "This slot was just taken. Please choose another time." };
+    try {
+        // Check slot is not already taken
+        const conflict = await db.therapyBooking.findFirst({
+            where: {
+                counsellorId,
+                appointmentTime,
+                status: { not: BookingStatus.CANCELLED },
+            },
+        });
+        if (conflict) return { success: false, error: "This slot was just taken. Please choose another time." };
 
-    // Ensure appointment is in the future
-    if (appointmentTime <= new Date()) return { success: false, error: "Please select a future time slot." };
+        // Ensure appointment is in the future
+        if (appointmentTime <= new Date()) return { success: false, error: "Please select a future time slot." };
 
-    const booking = await db.therapyBooking.create({
-        data: {
-            studentId: session.user.id,
-            counsellorId,
-            appointmentTime,
-            studentNotes: studentNotes.trim() || null,
-            status: BookingStatus.PENDING,
-        },
-    });
+        const booking = await db.therapyBooking.create({
+            data: {
+                studentId: session.user.id,
+                counsellorId,
+                appointmentTime,
+                studentNotes: studentNotes.trim() || null,
+                status: BookingStatus.PENDING,
+            },
+        });
 
-    revalidatePath(`/therapy/${counsellorId}`);
-    return { success: true, bookingId: booking.id };
+        revalidatePath(`/therapy/${counsellorId}`);
+        return { success: true, bookingId: booking.id };
+    } catch (err) {
+        console.error("[bookings] Error booking therapist:", err);
+        return { success: false, error: "Failed to book session. Please try again." };
+    }
 }

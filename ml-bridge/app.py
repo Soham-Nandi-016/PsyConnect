@@ -1,11 +1,12 @@
 """
 PsyConnect ML Bridge — Flask API
-POST /predict  →  accepts 11-feature JSON, returns stress_score (0–100)
+POST /predict  →  accepts 11-feature JSON, returns calibrated stress_score (0–100)
 """
 
 import os
 import pickle
 import numpy as np
+import pandas as pd
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -34,25 +35,31 @@ AGE_GROUP_MAP = {
     "27+":   3,
 }
 
-# Feature order must match training data exactly
-FEATURE_ORDER = [
-    "Mood_Score",
-    "Sleep_Duration",
-    "Sleep_Latency",
-    "Study_Load",
-    "Physical_Activity",
-    "Social_Interaction",
-    "Screen_Time",
-    "Journal_Sentiment",
-    "Financial_Stress",
-    "Mood_Trend_7D",
-    "Age_Group",
-]
+# Feature order MUST match the exact order trained in scaler.pkl:
+# ['Age_Group', 'Mood_Score', 'Sleep_Duration', 'Sleep_Latency', 'Study_Load',
+#  'Physical_Activity', 'Social_Interaction', 'Screen_Time', 'Journal_Sentiment',
+#  'Financial_Stress', 'Mood_Trend_7D']
+if MODEL_LOADED and hasattr(scaler, "feature_names_in_"):
+    FEATURE_ORDER = list(scaler.feature_names_in_)
+else:
+    FEATURE_ORDER = [
+        "Age_Group",
+        "Mood_Score",
+        "Sleep_Duration",
+        "Sleep_Latency",
+        "Study_Load",
+        "Physical_Activity",
+        "Social_Interaction",
+        "Screen_Time",
+        "Journal_Sentiment",
+        "Financial_Stress",
+        "Mood_Trend_7D",
+    ]
 
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "model_loaded": MODEL_LOADED})
+    return jsonify({"status": "ok", "model_loaded": MODEL_LOADED, "features": FEATURE_ORDER})
 
 
 @app.route("/predict", methods=["POST"])
@@ -70,7 +77,7 @@ def predict():
         "Screen_Time":       float  hours/day (0–16)
         "Journal_Sentiment": float  -1.0 to +1.0
         "Financial_Stress":  int    1–10
-        "Mood_Trend_7D":     float  average mood last 7 days (1–10)
+        "Mood_Trend_7D":     float  delta/trend (centered around 0.0) or 7D avg
         "Age_Group":         str    "18-20" | "21-23" | "24-26" | "27+"
     }
     Returns:
@@ -91,33 +98,48 @@ def predict():
         age_raw = data.get("Age_Group", "21-23")
         age_int = AGE_GROUP_MAP.get(str(age_raw), 1)  # default 21-23
 
-        feature_values = []
+        # Mood_Trend_7D is trained as delta (current mood - 7d avg, centered around 0.0)
+        # If passed as an absolute 1-10 average, convert to delta
+        mood_trend = float(data.get("Mood_Trend_7D", 0.0))
+        if (mood_trend > 1.5 or mood_trend < -1.5) and "Mood_Score" in data:
+            try:
+                mood_score_val = float(data["Mood_Score"])
+                # If mood_trend was an average (e.g. 6.0), delta = current - average
+                if mood_trend >= 1.0:
+                    mood_trend = mood_score_val - mood_trend
+            except (TypeError, ValueError):
+                pass
+
+        row_dict = {}
         for feat in FEATURE_ORDER:
             if feat == "Age_Group":
-                feature_values.append(age_int)
+                row_dict[feat] = age_int
+            elif feat == "Mood_Trend_7D":
+                row_dict[feat] = mood_trend
             else:
                 val = data.get(feat)
                 if val is None:
                     return jsonify({"error": f"Missing feature: {feat}"}), 400
-                feature_values.append(float(val))
+                row_dict[feat] = float(val)
 
-        X = np.array(feature_values).reshape(1, -1)
+        # Build DataFrame with exact feature names to prevent scikit-learn UserWarning
+        df = pd.DataFrame([row_dict], columns=FEATURE_ORDER)
     except (TypeError, ValueError) as e:
         return jsonify({"error": f"Invalid feature data: {e}"}), 400
 
     # Scale → predict
     try:
-        X_scaled = scaler.transform(X)
-        raw = model.predict(X_scaled)[0]
+        X_scaled = scaler.transform(df)
 
-        # Normalise to 0–100.  Model may output 0–10 or 0–1.
-        if raw <= 1.0:
-            stress_score = int(round(raw * 100))
-        elif raw <= 10:
-            stress_score = int(round(raw * 10))
+        # Use predict_proba for smooth, continuous, calibrated 0-100 score
+        if hasattr(model, "predict_proba") and hasattr(model, "classes_"):
+            proba = model.predict_proba(X_scaled)[0]
+            stress_score = int(round(sum(c * p for c, p in zip(model.classes_, proba)) * 10))
         else:
-            stress_score = int(round(min(max(raw, 0), 100)))
+            raw = model.predict(X_scaled)[0]
+            stress_score = int(round(raw * 10)) if 1 <= raw <= 10 else int(round(raw * 100))
 
+        stress_score = min(100, max(0, stress_score))
         label = "Low" if stress_score < 35 else ("Moderate" if stress_score < 65 else "High")
 
         return jsonify({"stress_score": stress_score, "label": label})
@@ -138,4 +160,5 @@ def detect_mood_legacy():
 
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

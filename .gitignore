@@ -7,6 +7,7 @@ node_modules/
 .next/
 out/
 build/
+dist-seed/
 
 # ── Environment variables (NEVER commit these) ───────────────
 .env
@@ -17,6 +18,13 @@ build/
 .env.test.local
 .env.production
 .env.production.local
+
+# ── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
 
 # ── Prisma ──────────────────────────────────────────────────
 # Keep schema.prisma and migrations; ignore generated client if desired

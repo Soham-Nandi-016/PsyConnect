@@ -1,9 +1,10 @@
 // ML service wrapper — communicates with the Flask ML microservice
-// The Flask app runs on port 5000 locally (or ML_SERVICE_URL in production)
+// The Flask app runs on port 5000 locally (or ML_API_URL / ML_SERVICE_URL in production)
 
-const ML_BASE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5000';
+const ML_BASE_URL = process.env.ML_API_URL || process.env.ML_SERVICE_URL || 'http://127.0.0.1:5000';
 
 export interface WellnessPayload {
+    Age_Group: "18-20" | "21-23" | "24-26" | "27+";
     Mood_Score: number;
     Sleep_Duration: number;
     Sleep_Latency: number;
@@ -14,7 +15,6 @@ export interface WellnessPayload {
     Journal_Sentiment: number;
     Financial_Stress: number;
     Mood_Trend_7D: number;
-    Age_Group: "18-20" | "21-23" | "24-26" | "27+";
 }
 
 export interface PredictResponse {
@@ -27,15 +27,31 @@ export interface PredictResponse {
  * and returns the predicted stress score and label.
  */
 export async function predictWellness(payload: WellnessPayload): Promise<PredictResponse> {
-    const response = await fetch(`${ML_BASE_URL}/predict`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-    });
+    let response: Response;
+    try {
+        response = await fetch(`${ML_BASE_URL}/predict`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(8000),
+        });
+    } catch (err) {
+        if (ML_BASE_URL.includes("localhost")) {
+            const fallback = ML_BASE_URL.replace("localhost", "127.0.0.1");
+            response = await fetch(`${fallback}/predict`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(8000),
+            });
+        } else {
+            throw err;
+        }
+    }
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(`ML Service Error ${response.status}: ${(err as any).error ?? response.statusText}`);
+        throw new Error(`ML Service Error ${response.status}: ${(err as { error?: string }).error ?? response.statusText}`);
     }
 
     return await response.json() as PredictResponse;

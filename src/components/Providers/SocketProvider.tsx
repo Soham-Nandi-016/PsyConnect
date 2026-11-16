@@ -24,37 +24,45 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!session?.user?.id) return;
 
+    let s: Socket | null = null;
+
     const socketInitializer = async () => {
-      await fetch("/api/socket_io");
-      const s = io(undefined as any, {
-        path: "/api/socket_io",
-        addTrailingSlash: false,
-      });
-
-      s.on("connect", () => {
-        const userId = session?.user?.id;
-        if (userId) {
-          console.log("[Socket] Connected to server");
-          s.emit("user-online", userId);
-        }
-      });
-
-      s.on("status-update", ({ userId, status }: { userId: string, status: string }) => {
-        setOnlineUsers((prev) => {
-          const next = new Set(prev);
-          if (status === "online") next.add(userId);
-          else next.delete(userId);
-          return next;
+      try {
+        await fetch("/api/socket_io");
+        s = io({
+          path: "/api/socket_io",
+          addTrailingSlash: false,
         });
-      });
 
-      setSocket(s);
+        s.on("connect", () => {
+          const userId = session?.user?.id;
+          if (userId && s) {
+            console.log("[Socket] Connected to server");
+            s.emit("user-online", userId);
+          }
+        });
+
+        s.on("status-update", ({ userId, status }: { userId: string; status: string }) => {
+          setOnlineUsers((prev) => {
+            const next = new Set(prev);
+            if (status === "online") next.add(userId);
+            else next.delete(userId);
+            return next;
+          });
+        });
+
+        setSocket(s);
+      } catch (err) {
+        console.error("[Socket] Failed to initialize socket:", err);
+      }
     };
 
     socketInitializer();
 
     return () => {
-      if (socket) socket.disconnect();
+      if (s) {
+        s.disconnect();
+      }
     };
   }, [session?.user?.id]);
 

@@ -1,16 +1,23 @@
 import { Server } from "socket.io";
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest } from "next";
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function SocketHandler(req: NextApiRequest, res: any) {
-  if (res.socket.server.io) {
+  if (res.socket?.server?.io) {
     console.log("[Socket] Engine is already running");
-  } else {
+  } else if (res.socket?.server) {
     console.log("[Socket] Initializing real-time engine...");
     const io = new Server(res.socket.server, {
-        path: "/api/socket_io",
-        addTrailingSlash: false,
+      path: "/api/socket_io",
+      addTrailingSlash: false,
     });
-    
+
     res.socket.server.io = io;
 
     const userSocketMap = new Map(); // socket.id -> userId
@@ -35,7 +42,7 @@ export default function SocketHandler(req: NextApiRequest, res: any) {
       socket.on("new-booking", (data) => {
         io.to(`mentor_${data.counsellorId}`).emit("new-booking", data);
       });
-      
+
       socket.on("user-online", (userId) => {
         userSocketMap.set(socket.id, userId);
         socket.broadcast.emit("status-update", { userId, status: "online" });
@@ -51,6 +58,6 @@ export default function SocketHandler(req: NextApiRequest, res: any) {
       });
     });
   }
-  
+
   res.end();
 }

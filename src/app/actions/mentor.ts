@@ -2,71 +2,76 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { BookingStatus, ConversationStatus, Role } from "@prisma/client";
+import { BookingStatus, ConversationStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getMentorDashboardData() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return null;
 
-  // 1. Get Counsellor Profile
-  const counsellor = await db.counsellor.findUnique({
-    where: { userId: session.user.id },
-  });
+    // 1. Get Counsellor Profile
+    const counsellor = await db.counsellor.findUnique({
+      where: { userId: session.user.id },
+    });
 
-  if (!counsellor) return null;
+    if (!counsellor) return null;
 
-  // 2. Fetch Pending Therapy Bookings (Appointments)
-  const pendingRequests = await db.therapyBooking.findMany({
-    where: {
+    // 2. Fetch Pending Therapy Bookings (Appointments)
+    const pendingRequests = await db.therapyBooking.findMany({
+      where: {
+        counsellorId: counsellor.id,
+        status: BookingStatus.PENDING,
+      },
+      include: {
+        student: { select: { id: true, name: true, image: true, createdAt: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // 3. Fetch Active Mentees (Conversations)
+    const activeMentees = await db.conversation.findMany({
+      where: {
+        counsellorId: counsellor.id,
+        status: ConversationStatus.ACCEPTED,
+      },
+      include: {
+        student: { select: { id: true, name: true, image: true } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 3,
+    });
+
+    // 4. Calculate Stats
+    const activeCount = await db.conversation.count({
+      where: { counsellorId: counsellor.id, status: ConversationStatus.ACCEPTED },
+    });
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const sessionsThisMonth = await db.message.count({
+      where: {
+        senderCounsellorId: counsellor.id,
+        createdAt: { gte: thirtyDaysAgo },
+      },
+    });
+
+    return {
       counsellorId: counsellor.id,
-      status: BookingStatus.PENDING,
-    },
-    include: {
-      student: { select: { id: true, name: true, image: true, createdAt: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // 3. Fetch Active Mentees (Conversations)
-  const activeMentees = await db.conversation.findMany({
-    where: {
-      counsellorId: counsellor.id,
-      status: ConversationStatus.ACCEPTED,
-    },
-    include: {
-      student: { select: { id: true, name: true, image: true } },
-      messages: { orderBy: { createdAt: "desc" }, take: 1 },
-    },
-    orderBy: { updatedAt: "desc" },
-    take: 3,
-  });
-
-  // 4. Calculate Stats
-  const activeCount = await db.conversation.count({
-    where: { counsellorId: counsellor.id, status: ConversationStatus.ACCEPTED },
-  });
-
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const sessionsThisMonth = await db.message.count({
-    where: {
-      senderCounsellorId: counsellor.id,
-      createdAt: { gte: thirtyDaysAgo },
-    },
-  });
-
-  return {
-    counsellorId: counsellor.id,
-    pendingRequests,
-    activeMentees,
-    stats: {
-      activeMentees: activeCount,
-      sessionsThisMonth: sessionsThisMonth,
-      rating: counsellor.rating,
-    },
-  };
+      pendingRequests,
+      activeMentees,
+      stats: {
+        activeMentees: activeCount,
+        sessionsThisMonth: sessionsThisMonth,
+        rating: counsellor.rating,
+      },
+    };
+  } catch (err) {
+    console.error("[mentor] Error fetching mentor dashboard data:", err);
+    return null;
+  }
 }
 
 export async function acceptBooking(bookingId: string) {
@@ -109,7 +114,7 @@ export async function acceptBooking(bookingId: string) {
     revalidatePath("/forum");
     return { success: true, conversationId: conversation.id };
   } catch (err) {
-    console.error("Error accepting booking:", err);
+    console.error("[mentor] Error accepting booking:", err);
     return { error: "Failed to accept booking." };
   }
 }
